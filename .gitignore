@@ -1,99 +1,7 @@
-# -------------------------
-# Dart / Flutter / Pub
-# -------------------------
-.dart_tool/
-.packages
-.pub/
-.pub-cache/
-.flutter-plugins
-.flutter-plugins-dependencies
-.flutter-versions
-generated_plugin_registrant.dart
-
-# Build / output directories
-build/
-**/build/
-**/doc/api/
-coverage/
-
-# -------------------------
-# Flutter Web
-# -------------------------
-web/.dart_tool/
-web/.firebase/
-web/.cache/
-web/.flutter-plugins
-web/build/
-*.html.dart
-
-# -------------------------
-# Flutter iOS
-# -------------------------
-**/ios/Flutter/.last_build_id
-**/ios/Pods/
-**/ios/.symlinks/
-**/ios/Flutter/App.framework
-**/ios/Flutter/Flutter.framework
-**/ios/Flutter/Flutter.podspec
-**/ios/Flutter/engine/
-**/ios/ServiceDefinitions.json
-**/ios/Runner/GeneratedPluginRegistrant.*
-
-# -------------------------
-# Flutter Android
-# -------------------------
-/android/.gradle
-/android/captures/
-/android/.idea
-/android/local.properties
-/android/key.properties
-
-# Build variants
-/android/app/debug/
-/android/app/profile/
-/android/app/release/
-
-# Gradle
-**/android/**/*.iml
-**/android/build/
-**/*.gradle
-**/*.gradle.*
-.gradle/
-gradle-app.setting
-
-# -------------------------
-# Flutter Windows
-# -------------------------
-windows/flutter/
-windows/CMakeFiles/
-windows/runner/*.iobj
-windows/runner/*.ipdb
-
-# -------------------------
-# Flutter Linux
-# -------------------------
-linux/flutter/
-linux/CMakeFiles/
-
-# -------------------------
-# Flutter macOS
-# -------------------------
-macos/Flutter/Flutter-Debug.xcconfig
-macos/Flutter/Flutter-Release.xcconfig
-macos/Flutter/GeneratedPluginRegistrant.*
-
-# -------------------------
-# Editor / IDE
-# -------------------------
-
-# VS Code
-.vscode/
-
-# IntelliJ / Android Studio
-*.iml
-*.ipr
-*.iws
-.idea/
+# Miscellaneous
+*.class
+*.log
+*.pyc
 *.swp
 
 # -------------------------
@@ -123,5 +31,8 @@ migrate_working_dir/
 # -------------------------
 app.*.symbols
 app.*.map.json
-app.*.release.apk
-app.*.aab
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
