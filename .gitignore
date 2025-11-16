@@ -1,127 +1,45 @@
-# -------------------------
-# Dart / Flutter / Pub
-# -------------------------
-.dart_tool/
-.packages
-.pub/
-.pub-cache/
-.flutter-plugins
-.flutter-plugins-dependencies
-.flutter-versions
-generated_plugin_registrant.dart
-
-# Build / output directories
-build/
-**/build/
-**/doc/api/
-coverage/
-
-# -------------------------
-# Flutter Web
-# -------------------------
-web/.dart_tool/
-web/.firebase/
-web/.cache/
-web/.flutter-plugins
-web/build/
-*.html.dart
-
-# -------------------------
-# Flutter iOS
-# -------------------------
-**/ios/Flutter/.last_build_id
-**/ios/Pods/
-**/ios/.symlinks/
-**/ios/Flutter/App.framework
-**/ios/Flutter/Flutter.framework
-**/ios/Flutter/Flutter.podspec
-**/ios/Flutter/engine/
-**/ios/ServiceDefinitions.json
-**/ios/Runner/GeneratedPluginRegistrant.*
-
-# -------------------------
-# Flutter Android
-# -------------------------
-/android/.gradle
-/android/captures/
-/android/.idea
-/android/local.properties
-/android/key.properties
-
-# Build variants
-/android/app/debug/
-/android/app/profile/
-/android/app/release/
-
-# Gradle
-**/android/**/*.iml
-**/android/build/
-**/*.gradle
-**/*.gradle.*
-.gradle/
-gradle-app.setting
-
-# -------------------------
-# Flutter Windows
-# -------------------------
-windows/flutter/
-windows/CMakeFiles/
-windows/runner/*.iobj
-windows/runner/*.ipdb
-
-# -------------------------
-# Flutter Linux
-# -------------------------
-linux/flutter/
-linux/CMakeFiles/
-
-# -------------------------
-# Flutter macOS
-# -------------------------
-macos/Flutter/Flutter-Debug.xcconfig
-macos/Flutter/Flutter-Release.xcconfig
-macos/Flutter/GeneratedPluginRegistrant.*
-
-# -------------------------
-# Editor / IDE
-# -------------------------
-
-# VS Code
-.vscode/
-
-# IntelliJ / Android Studio
-*.iml
-*.ipr
-*.iws
-.idea/
-*.swp
-
-# -------------------------
-# OS / System files
-# -------------------------
-.DS_Store
-Thumbs.db
+# Miscellaneous
+*.class
 *.log
-*.tmp
-*.temp
-*.orig
 *.pyc
-
-# -------------------------
-# Project misc
-# -------------------------
+*.swp
+.DS_Store
 .atom/
 .build/
 .buildlog/
-.history/
+.history
 .svn/
 .swiftpm/
 migrate_working_dir/
 
-# -------------------------
-# Symbolication / Obfuscation
-# -------------------------
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
 app.*.symbols
+
+# Obfuscation related
 app.*.map.json
-app.*.release.apk
-app.*.aab
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
