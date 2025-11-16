@@ -1,0 +1,34 @@
+name: smart_utility_tracker
+description: A complete Flutter app for tracking utility usage and payments.
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  intl: ^0.19.0
+  fl_chart: ^0.65.0
+  shared_preferences: ^2.2.2
+  image_picker: ^0.8.7+4 # updated for null-safety & newer Flutter
+  path_provider: ^2.0.16
+  pdf: ^3.11.3
+  camera: ^0.11.3
+  permission_handler: ^11.3.0
+  open_file: ^3.2.1
+  provider: ^6.1.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+assets:
+  - assets/logo.jpg
