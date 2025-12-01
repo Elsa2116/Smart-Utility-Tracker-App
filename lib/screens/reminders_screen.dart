@@ -9,9 +9,17 @@ class RemindersScreen extends StatefulWidget {
 
 class _RemindersScreenState extends State<RemindersScreen> {
   final List<Map<String, dynamic>> _reminders = [
-    {'title': 'Check Electricity Meter', 'date': 'Every 1st of Month', 'enabled': true},
+    {
+      'title': 'Check Electricity Meter',
+      'date': 'Every 1st of Month',
+      'enabled': true
+    },
     {'title': 'Pay Water Bill', 'date': 'Every 15th of Month', 'enabled': true},
-    {'title': 'Check Gas Usage', 'date': 'Every 20th of Month', 'enabled': false},
+    {
+      'title': 'Check Gas Usage',
+      'date': 'Every 20th of Month',
+      'enabled': false
+    },
   ];
 
   @override

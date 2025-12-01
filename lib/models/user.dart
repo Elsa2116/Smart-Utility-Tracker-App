@@ -4,6 +4,7 @@ class User {
   final String email;
   final String password;
   final DateTime createdAt;
+  final String? profileImageUrl; // Add this field
 
   User({
     this.id,
@@ -11,6 +12,7 @@ class User {
     required this.email,
     required this.password,
     required this.createdAt,
+    this.profileImageUrl, // Add this parameter
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +22,7 @@ class User {
       'email': email,
       'password': password,
       'createdAt': createdAt.toIso8601String(),
+      'profileImageUrl': profileImageUrl, // Add this line
     };
   }
 
@@ -30,6 +33,7 @@ class User {
       email: map['email'],
       password: map['password'],
       createdAt: DateTime.parse(map['createdAt']),
+      profileImageUrl: map['profileImageUrl'], // Add this line
     );
   }
 }

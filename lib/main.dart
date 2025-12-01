@@ -1,26 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'providers/data_provider.dart';
-import 'screens/splash_screen.dart'; // ✅ Add this import
-import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/add_reading_screen.dart';
-import 'screens/history_screen.dart';
-import 'screens/analytics_screen.dart';
-import 'screens/payments_screen.dart';
-import 'screens/reminders_screen.dart';
-import 'screens/settings_screen.dart';
-import 'screens/alerts_screen.dart';
+import 'package:smart_utility_tracker/screens/splash_screen.dart';
+import 'package:smart_utility_tracker/screens/login_screen.dart';
+import 'package:smart_utility_tracker/screens/home_screen.dart';
+import 'package:smart_utility_tracker/screens/profile_screen.dart';
+import 'package:smart_utility_tracker/screens/history_analytics_screen.dart';
+import 'package:smart_utility_tracker/screens/payments_screen.dart';
+import 'package:smart_utility_tracker/screens/alerts_screen.dart';
+import 'package:smart_utility_tracker/screens/add_reading_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => DataProvider(),
-      child: const MyApp(),
-    ),
-  );
+void main() {
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -30,25 +19,27 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Smart Utility Tracker',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1F2937),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
       ),
-      // ✅ Start with splash screen instead of login
       initialRoute: '/splash',
-      debugShowCheckedModeBanner: false,
       routes: {
-        '/splash': (context) => const SplashScreen(), // ✅ Added route
+        '/splash': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
-        '/add-reading': (context) => const AddReadingScreen(),
-        '/history': (context) => const HistoryScreen(),
-        '/analytics': (context) => const AnalyticsScreen(),
+        '/profile': (context) => const ProfileScreen(userId: 1),
+        '/insights': (context) => const HistoryAnalyticsScreen(),
         '/payments': (context) => const PaymentsScreen(),
-        '/reminders': (context) => const RemindersScreen(),
-        '/settings': (context) => const SettingsScreen(),
         '/alerts': (context) => const AlertsScreen(),
+        '/add-reading': (context) => const AddReadingScreen(),
       },
     );
   }

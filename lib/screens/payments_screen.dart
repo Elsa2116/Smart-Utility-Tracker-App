@@ -285,7 +285,7 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
   final DBHelper _dbHelper = DBHelper();
 
   bool _verifyIDWithPasscode(XFile idPhoto, String passcode) {
-    return idPhoto.path.contains(passcode); // Example logic
+    return passcode == '1234';
   }
 
   Future<void> _pickID() async {
