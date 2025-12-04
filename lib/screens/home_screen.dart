@@ -1,4 +1,4 @@
-import 'dart:io'; // Added import
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/db_helper.dart';
@@ -8,6 +8,8 @@ import 'history_analytics_screen.dart';
 import 'payments_screen.dart';
 import 'alerts_screen.dart';
 import 'profile_screen.dart';
+import 'reminders_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -30,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    // Demo data for testing
     setState(() {
       _recentReadings = [
         Reading(
@@ -68,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     switch (index) {
       case 0:
-        // Home - already on home screen
+        // Home - already here
         break;
       case 1:
         Navigator.pushNamed(context, '/add-reading').then((_) => _loadData());
@@ -80,7 +81,10 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.pushNamed(context, '/payments').then((_) => _loadData());
         break;
       case 4:
-        Navigator.pushNamed(context, '/profile');
+        Navigator.pushNamed(context, '/reminders'); // Reminders
+        break;
+      case 5:
+        Navigator.pushNamed(context, '/settings'); // Settings
         break;
     }
   }
@@ -101,16 +105,22 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text(
           'Smart Utility Tracker',
           style: TextStyle(
-              fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         actions: [
-          // Notification button (Alerts)
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () => Navigator.pushNamed(context, '/alerts'),
             tooltip: 'Alerts',
           ),
-          // Removed duplicate profile button - accessible via Settings tab
+          IconButton(
+            icon: _buildProfileIcon(),
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
+            tooltip: 'Profile',
+          ),
         ],
       ),
       body: Container(
@@ -142,15 +152,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
               ),
-
               const SizedBox(height: 32),
-
-              // Quick Stats Cards
               _buildQuickStats(),
-
               const SizedBox(height: 32),
-
-              // Recent Readings Header with See All button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -186,17 +190,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-
               if (_recentReadings.isEmpty)
                 _emptyReadingsWidget()
               else
                 Column(
                   children: displayedReadings.map(_buildReadingCard).toList(),
                 ),
-
               const SizedBox(height: 24),
-
-              // Quick Actions
               Text(
                 'Quick Actions',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -206,7 +206,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 16),
               _buildQuickActions(),
-
               const SizedBox(height: 32),
             ],
           ),
@@ -225,6 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
               icon: Icon(Icons.insights), label: 'Insights'),
           BottomNavigationBarItem(icon: Icon(Icons.payment), label: 'Payments'),
+          BottomNavigationBarItem(icon: Icon(Icons.alarm), label: 'Reminders'),
           BottomNavigationBarItem(
               icon: Icon(Icons.settings), label: 'Settings'),
         ],
@@ -251,22 +251,16 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Expanded(
           child: _buildStatCard(
-            'Electricity',
-            electricityAvg.toStringAsFixed(1),
-            'kWh',
-            Icons.bolt,
-            Colors.amber,
-          ),
+              'Electricity',
+              electricityAvg.toStringAsFixed(1),
+              'kWh',
+              Icons.bolt,
+              Colors.amber),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard(
-            'Water',
-            waterAvg.toStringAsFixed(1),
-            'L',
-            Icons.water_drop,
-            Colors.blue,
-          ),
+          child: _buildStatCard('Water', waterAvg.toStringAsFixed(1), 'L',
+              Icons.water_drop, Colors.blue),
         ),
       ],
     );
@@ -520,8 +514,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8)),
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(width: 16),

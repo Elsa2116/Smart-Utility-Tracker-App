@@ -18,13 +18,22 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    print('LoginScreen: initState called');
     _checkLoginStatus();
   }
 
   Future<void> _checkLoginStatus() async {
+    print('LoginScreen: Checking login status...');
     final isLoggedIn = await _authService.checkLoginStatus();
+    print('LoginScreen: checkLoginStatus returned: $isLoggedIn');
+
     if (isLoggedIn && mounted) {
+      print('LoginScreen: User is already logged in, redirecting to /home');
+      // Add a small delay for better UX
+      await Future.delayed(const Duration(milliseconds: 100));
       Navigator.of(context).pushReplacementNamed('/home');
+    } else {
+      print('LoginScreen: User is not logged in, showing login form');
     }
   }
 
@@ -50,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (password.length < 4) {
       _showErrorDialog(
-          'Invalid Password', 'Password must be at least 6 characters');
+          'Invalid Password', 'Password must be at least 4 characters');
       return;
     }
 
@@ -58,6 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    print('LoginScreen: Starting login process...');
     setState(() {
       _isLoading = true;
     });
@@ -69,10 +79,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (mounted) {
       if (success) {
+        print('LoginScreen: Login successful');
         _showSuccessDialog('Login Successful', 'Welcome back!', () {
+          print('LoginScreen: Navigating to /home after success');
           Navigator.of(context).pushReplacementNamed('/home');
         });
       } else {
+        print('LoginScreen: Login failed');
         setState(() {
           _isLoading = false;
         });
@@ -90,7 +103,10 @@ class _LoginScreenState extends State<LoginScreen> {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              print('LoginScreen: Error dialog closed');
+              Navigator.pop(context);
+            },
             child: const Text('OK'),
           ),
         ],
@@ -107,6 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () {
+              print('LoginScreen: Success dialog closed, executing callback');
               Navigator.pop(context);
               onOk();
             },
@@ -119,6 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('LoginScreen: Building widget');
     return Scaffold(
       appBar: AppBar(
         title: const Text('Smart Utility Tracker'),
@@ -185,6 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onTap: _isLoading
                       ? null
                       : () {
+                          print('LoginScreen: Navigating to RegisterScreen');
                           Navigator.of(context).push(
                             MaterialPageRoute(
                                 builder: (context) => const RegisterScreen()),
@@ -208,6 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    print('LoginScreen: dispose called');
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();

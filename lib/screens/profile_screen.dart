@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/db_helper.dart';
+import '../services/auth_service.dart';
+import '../screens/login_screen.dart';
 import '../models/user.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -15,6 +17,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final DBHelper _dbHelper = DBHelper();
+  final AuthService _authService = AuthService();
   final ImagePicker _imagePicker = ImagePicker();
   User? _user;
   bool _isLoading = true;
@@ -29,22 +32,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    print('ProfileScreen: initState called with userId: ${widget.userId}');
     _loadUser();
   }
 
   Future<void> _loadUser() async {
-    setState(() {
-      _user = User(
-        id: widget.userId,
-        name: 'Elsa Alemayehu',
-        email: 'elsialemayehu33@gmail.com',
-        password: 'password123',
-        createdAt: DateTime.now(),
-        profileImageUrl: _profileImageUrl,
-      );
-      _nameController.text = _user!.name;
-      _isLoading = false;
-    });
+    print('ProfileScreen: Loading user data...');
+    try {
+      final user = await _dbHelper.getUserById(widget.userId);
+
+      if (user != null) {
+        print('ProfileScreen: User loaded from database: ${user.name}');
+        setState(() {
+          _user = user;
+          _nameController.text = user.name;
+          _isLoading = false;
+        });
+      } else {
+        print('ProfileScreen: User not found in database, using fallback');
+        setState(() {
+          _user = User(
+            id: widget.userId,
+            name: 'Elsa Alemayehu',
+            email: 'elsialemayehu33@gmail.com',
+            password: 'password123',
+            createdAt: DateTime.now(),
+            profileImageUrl: _profileImageUrl,
+          );
+          _nameController.text = _user!.name;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('ProfileScreen: Error loading user: $e');
+      setState(() {
+        _user = User(
+          id: widget.userId,
+          name: 'Elsa Alemayehu',
+          email: 'elsialemayehu33@gmail.com',
+          password: 'password123',
+          createdAt: DateTime.now(),
+          profileImageUrl: _profileImageUrl,
+        );
+        _nameController.text = _user!.name;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _pickImage() async {
@@ -82,7 +115,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       XFile? pickedFile;
 
       if (option == 1) {
-        // Camera
         pickedFile = await _imagePicker.pickImage(
           source: ImageSource.camera,
           imageQuality: 80,
@@ -90,7 +122,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           maxHeight: 800,
         );
       } else if (option == 2) {
-        // Gallery
         pickedFile = await _imagePicker.pickImage(
           source: ImageSource.gallery,
           imageQuality: 80,
@@ -98,11 +129,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
           maxHeight: 800,
         );
       } else if (option == 3) {
-        // Remove photo
         setState(() {
           _profileImage = null;
           _profileImageUrl = null;
         });
+
+        if (_user != null) {
+          await _dbHelper.updateUser(User(
+            id: _user!.id,
+            name: _user!.name,
+            email: _user!.email,
+            password: _user!.password,
+            createdAt: _user!.createdAt,
+            profileImageUrl: null,
+          ));
+        }
+
         return;
       }
 
@@ -110,6 +152,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _profileImage = File(pickedFile!.path);
         });
+
+        if (_user != null) {
+          await _dbHelper.updateUser(User(
+            id: _user!.id,
+            name: _user!.name,
+            email: _user!.email,
+            password: _user!.password,
+            createdAt: _user!.createdAt,
+            profileImageUrl: pickedFile.path,
+          ));
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -130,9 +183,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _updateProfile() async {
-    if (_user != null) {
-      setState(() {
-        _user = User(
+    if (_user != null && _nameController.text.isNotEmpty) {
+      try {
+        final updatedUser = User(
           id: _user!.id,
           name: _nameController.text,
           email: _user!.email,
@@ -142,16 +195,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
           createdAt: _user!.createdAt,
           profileImageUrl: _profileImageUrl,
         );
-      });
 
+        await _dbHelper.updateUser(updatedUser);
+
+        setState(() {
+          _user = updatedUser;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Profile updated successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        print('Error updating profile: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile updated successfully")),
+        const SnackBar(
+          content: Text("Please enter a valid name"),
+          backgroundColor: Colors.orange,
+        ),
       );
     }
   }
 
   Future<void> _logout() async {
-    Navigator.of(context).pushReplacementNamed('/login');
+    print('ProfileScreen: Logout button pressed');
+
+    // Show confirmation dialog
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              print('ProfileScreen: User canceled logout');
+              Navigator.pop(context, false);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              print('ProfileScreen: User confirmed logout');
+              Navigator.pop(context, true);
+            },
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true) {
+      print('ProfileScreen: Starting logout process...');
+
+      // 1. Clear authentication state
+      await _authService.logout();
+      print('ProfileScreen: AuthService.logout() completed');
+
+      // 2. Clear ALL navigation stack and go to login
+      print('ProfileScreen: Navigating to login screen...');
+
+      // Option 1: Try named routes first
+      try {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login',
+          (Route<dynamic> route) {
+            print('ProfileScreen: Removing route: ${route.settings.name}');
+            return false;
+          },
+        );
+        print('ProfileScreen: Named route navigation successful');
+      } catch (e) {
+        print('ProfileScreen: Named route error: $e, trying direct navigation');
+
+        // Option 2: Direct navigation as fallback
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) {
+            print('ProfileScreen: Removing route: ${route.settings.name}');
+            return false;
+          },
+        );
+        print('ProfileScreen: Direct navigation successful');
+      }
+
+      print('ProfileScreen: Logout process completed');
+    }
   }
 
   void _showSupportDialog() {
@@ -174,43 +314,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showEditProfileDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Profile'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Profile picture preview in edit dialog
-              GestureDetector(
-                onTap: _pickImage,
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.blue.shade100,
-                        border: Border.all(color: Colors.blue, width: 2),
-                      ),
-                      child: _profileImage != null
-                          ? ClipOval(
-                              child: Image.file(
-                                _profileImage!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: Colors.blue,
-                                  );
-                                },
-                              ),
-                            )
-                          : (_profileImageUrl != null
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Edit Profile'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await _pickImage();
+                      _showEditProfileDialog();
+                    },
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.blue.shade100,
+                            border: Border.all(color: Colors.blue, width: 2),
+                          ),
+                          child: _profileImage != null
                               ? ClipOval(
-                                  child: Image.network(
-                                    _profileImageUrl!,
+                                  child: Image.file(
+                                    _profileImage!,
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return const Icon(
@@ -221,81 +352,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     },
                                   ),
                                 )
-                              : const Icon(
-                                  Icons.person,
-                                  size: 50,
-                                  color: Colors.blue,
-                                )),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
+                              : (_profileImageUrl != null
+                                  ? ClipOval(
+                                      child: Image.network(
+                                        _profileImageUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return const Icon(
+                                            Icons.person,
+                                            size: 50,
+                                            color: Colors.blue,
+                                          );
+                                        },
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.blue,
+                                    )),
                         ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 20,
-                          color: Colors.white,
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tap image to change',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Name',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'New Password (optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.lock),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Tap image to change',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 12,
-                ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'New Password (optional)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
+              ElevatedButton(
+                onPressed: () {
+                  _updateProfile();
+                  Navigator.pop(context);
+                },
+                child: const Text('Save Changes'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              _updateProfile();
-              Navigator.pop(context);
-            },
-            child: const Text('Save Changes'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    print('ProfileScreen: Building widget');
     return Scaffold(
       backgroundColor: _darkMode ? const Color(0xFF121212) : Colors.white,
       appBar: AppBar(
@@ -304,7 +453,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         foregroundColor: _darkMode ? Colors.white : Colors.black,
         elevation: 0,
         actions: [
-          // Removed profile image icon from here
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _showEditProfileDialog,
@@ -525,7 +673,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                      content: Text('Password updated')),
+                                    content: Text('Password updated'),
+                                    backgroundColor: Colors.green,
+                                  ),
                                 );
                               },
                               child: const Text('Update'),
@@ -565,7 +715,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
                     subtitle: 'View our privacy policy',
-                    onTap: () {},
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Privacy Policy'),
+                          content: const SingleChildScrollView(
+                            child: Text(
+                              'We are committed to protecting your privacy. Your personal information is kept secure and will never be shared with third parties without your consent.',
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 32),
                   SizedBox(
@@ -656,6 +824,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
+    print('ProfileScreen: dispose called');
     _nameController.dispose();
     _passwordController.dispose();
     super.dispose();

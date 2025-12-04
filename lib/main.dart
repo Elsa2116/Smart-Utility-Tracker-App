@@ -7,6 +7,8 @@ import 'package:smart_utility_tracker/screens/history_analytics_screen.dart';
 import 'package:smart_utility_tracker/screens/payments_screen.dart';
 import 'package:smart_utility_tracker/screens/alerts_screen.dart';
 import 'package:smart_utility_tracker/screens/add_reading_screen.dart';
+import 'package:smart_utility_tracker/screens/reminders_screen.dart';
+import 'package:smart_utility_tracker/screens/settings_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -39,6 +41,8 @@ class MyApp extends StatelessWidget {
         '/insights': (context) => const HistoryAnalyticsScreen(),
         '/payments': (context) => const PaymentsScreen(),
         '/alerts': (context) => const AlertsScreen(),
+        '/reminders': (context) => const RemindersScreen(), // added
+        '/settings': (context) => const SettingsScreen(), // added
         '/add-reading': (context) => const AddReadingScreen(),
       },
     );

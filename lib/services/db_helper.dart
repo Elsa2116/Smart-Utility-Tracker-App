@@ -27,7 +27,7 @@ class DBHelper {
 
     return openDatabase(
       path,
-      version: 3, // Incremented version for safety
+      version: 4, // Incremented version to add profileImageUrl column
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -40,6 +40,7 @@ class DBHelper {
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
+        profileImageUrl TEXT,
         createdAt TEXT NOT NULL
       )
     ''');
@@ -102,14 +103,14 @@ class DBHelper {
         await db.execute(
             'ALTER TABLE payments ADD COLUMN paymentMethod TEXT NOT NULL DEFAULT "telebirr"');
       } catch (e) {
-        print('[v0] Column paymentMethod already exists: $e');
+        print('[DB] Column paymentMethod already exists: $e');
       }
 
       try {
         await db.execute(
             'ALTER TABLE payments ADD COLUMN status TEXT NOT NULL DEFAULT "pending"');
       } catch (e) {
-        print('[v0] Column status already exists: $e');
+        print('[DB] Column status already exists: $e');
       }
     }
 
@@ -127,7 +128,7 @@ class DBHelper {
           )
         ''');
       } catch (e) {
-        print('[v0] Thresholds table already exists: $e');
+        print('[DB] Thresholds table already exists: $e');
       }
 
       try {
@@ -144,12 +145,22 @@ class DBHelper {
           )
         ''');
       } catch (e) {
-        print('[v0] Alerts table already exists: $e');
+        print('[DB] Alerts table already exists: $e');
+      }
+    }
+
+    if (oldVersion < 4) {
+      try {
+        await db.execute('ALTER TABLE users ADD COLUMN profileImageUrl TEXT');
+        print('[DB] Added profileImageUrl column to users table');
+      } catch (e) {
+        print('[DB] Column profileImageUrl already exists: $e');
       }
     }
   }
 
-  // User operations
+  // ========== USER OPERATIONS ==========
+
   Future<int> insertUser(User user) async {
     final db = await database;
     return await db.insert('users', user.toMap());
@@ -165,7 +176,43 @@ class DBHelper {
     return null;
   }
 
-  // Reading operations
+  // ADD THIS METHOD: Get user by ID
+  Future<User?> getUserById(int userId) async {
+    final db = await database;
+    final result =
+        await db.query('users', where: 'id = ?', whereArgs: [userId]);
+    if (result.isNotEmpty) {
+      return User.fromMap(result.first);
+    }
+    return null;
+  }
+
+  // ADD THIS METHOD: Update user
+  Future<int> updateUser(User user) async {
+    final db = await database;
+    return await db.update(
+      'users',
+      user.toMap(),
+      where: 'id = ?',
+      whereArgs: [user.id],
+    );
+  }
+
+  // ADD THIS METHOD: Get all users (optional, for debugging)
+  Future<List<User>> getAllUsers() async {
+    final db = await database;
+    final result = await db.query('users');
+    return result.map((map) => User.fromMap(map)).toList();
+  }
+
+  // ADD THIS METHOD: Delete user
+  Future<int> deleteUser(int userId) async {
+    final db = await database;
+    return await db.delete('users', where: 'id = ?', whereArgs: [userId]);
+  }
+
+  // ========== READING OPERATIONS ==========
+
   Future<int> insertReading(Reading reading) async {
     final db = await database;
     return await db.insert('readings', reading.toMap());
@@ -206,7 +253,8 @@ class DBHelper {
     return await db.delete('readings', where: 'id = ?', whereArgs: [id]);
   }
 
-  // Payment operations
+  // ========== PAYMENT OPERATIONS ==========
+
   Future<int> insertPayment(Payment payment) async {
     final db = await database;
     return await db.insert('payments', payment.toMap());
@@ -230,7 +278,8 @@ class DBHelper {
     return await db.delete('payments', where: 'id = ?', whereArgs: [id]);
   }
 
-  // Threshold operations (FULLY FIXED)
+  // ========== THRESHOLD OPERATIONS ==========
+
   Future<int> insertThreshold(UsageThreshold threshold) async {
     final db = await database;
 
@@ -250,7 +299,7 @@ class DBHelper {
     return await db.insert(
       'thresholds',
       threshold.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace, // Handles update
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
@@ -271,7 +320,8 @@ class DBHelper {
     return result.map((map) => UsageThreshold.fromMap(map)).toList();
   }
 
-  // Alert operations
+  // ========== ALERT OPERATIONS ==========
+
   Future<int> insertAlert(Alert alert) async {
     final db = await database;
     return await db.insert('alerts', alert.toMap());
@@ -287,5 +337,26 @@ class DBHelper {
   Future<int> deleteAlert(int id) async {
     final db = await database;
     return await db.delete('alerts', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ========== DATABASE MAINTENANCE ==========
+
+  Future<void> closeDatabase() async {
+    final db = await database;
+    await db.close();
+    _database = null;
+  }
+
+  // FIXED THIS METHOD
+  Future<void> resetDatabase() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'utility_tracker.db');
+    try {
+      await databaseFactory.deleteDatabase(path);
+      _database = null; // Reset the database instance
+      print('[DB] Database reset successfully');
+    } catch (e) {
+      print('[DB] Error resetting database: $e');
+    }
   }
 }
