@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/db_helper.dart';
 import '../models/threshold.dart';
+import '../models/user.dart';
+import '../screens/profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -15,10 +18,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _dbHelper = DBHelper();
   late Future<List<UsageThreshold>> _thresholdsFuture;
 
+  bool _notificationsEnabled = true;
+
+  final List<String> _languages = ["English", "Amharic", "Oromo", "Tigrigna"];
+  String _selectedLanguage = "English";
+
   @override
   void initState() {
     super.initState();
     _loadThresholds();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _notificationsEnabled = prefs.getBool('notifications') ?? true;
+      _selectedLanguage = prefs.getString('language') ?? "English";
+    });
+  }
+
+  Future<void> _savePreference(String key, dynamic value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value is bool) {
+      prefs.setBool(key, value);
+    } else {
+      prefs.setString(key, value);
+    }
   }
 
   void _loadThresholds() {
@@ -32,179 +58,292 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<User?> _getCurrentUser() async {
+    final userId = _authService.currentUserId;
+    if (userId == null) return null;
+    return _dbHelper.getUserById(userId);
+  }
+
   void _showThresholdDialog(String type, UsageThreshold? existing) {
     final controller = TextEditingController(
       text: existing?.maxUsage.toString() ?? '',
     );
-    bool isSaving = false;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('Set ${type.toUpperCase()} Threshold'),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Max usage',
-              suffixText: type == 'electricity' ? 'kWh' : 'L',
-            ),
+      builder: (context) => AlertDialog(
+        title: Text('Set ${type.toUpperCase()} threshold'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: 'Max usage value',
+            suffixText: type == 'electricity' ? 'kWh' : 'L',
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: isSaving
-                  ? null
-                  : () async {
-                      final value = double.tryParse(controller.text);
-                      if (value == null || value <= 0) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please enter a valid number'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                        return;
-                      }
-
-                      final userId = _authService.currentUserId;
-                      if (userId == null) return;
-
-                      final threshold = UsageThreshold(
-                        id: existing?.id,
-                        userId: userId,
-                        type: type,
-                        maxUsage: value,
-                        unit: type == 'electricity' ? 'kWh' : 'L',
-                      );
-
-                      try {
-                        setDialogState(() => isSaving = true);
-                        await _dbHelper.insertThreshold(threshold);
-
-                        if (!mounted) return;
-                        Navigator.pop(context); // Close dialog
-
-                        setState(() {
-                          _thresholdsFuture =
-                              _dbHelper.getThresholdsByUserId(userId);
-                        });
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content:
-                                Text('$type threshold saved successfully!'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content:
-                                  Text('Failed to save $type threshold: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      } finally {
-                        if (mounted) setDialogState(() => isSaving = false);
-                      }
-                    },
-              child: isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Save'),
-            ),
-          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final value = double.tryParse(controller.text);
+              if (value == null || value <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid amount'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              final userId = _authService.currentUserId;
+              if (userId == null) return;
+
+              final threshold = UsageThreshold(
+                id: existing?.id,
+                userId: userId,
+                type: type,
+                maxUsage: value,
+                unit: type == 'electricity' ? 'kWh' : 'L',
+              );
+
+              await _dbHelper.insertThreshold(threshold);
+
+              setState(() {
+                _thresholdsFuture = _dbHelper.getThresholdsByUserId(userId);
+              });
+
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
+  }
+
+  void _showEditProfile() {
+    final userId = _authService.currentUserId;
+    if (userId != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProfileScreen(userId: userId),
+        ),
+      );
+    }
+  }
+
+  void _showSupportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Support & Feedback'),
+        content:
+            const Text('Email: support@smartutility.com\nPhone: +1234567890'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _logout() async {
+    await _authService.logout();
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // White background
+      backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black), // Back arrow
-          onPressed: () {
-            Navigator.pop(context); // Go back to previous screen
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Settings',
           style: TextStyle(color: Colors.black),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white, // White AppBar
+        backgroundColor: Colors.white,
         elevation: 1,
       ),
-      body: FutureBuilder<List<UsageThreshold>>(
-        future: _thresholdsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final thresholds = snapshot.data ?? [];
-          final thresholdMap = {for (var t in thresholds) t.type: t};
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Usage Thresholds',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FutureBuilder<User?>(
+              future: _getCurrentUser(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox();
+                final user = snapshot.data!;
+                return ListTile(
+                  leading: CircleAvatar(
+                    radius: 24,
+                    backgroundImage: user.profileImageUrl != null
+                        ? NetworkImage(user.profileImageUrl!)
+                        : null,
+                    child: user.profileImageUrl == null
+                        ? const Icon(Icons.person)
+                        : null,
                   ),
-                ),
-                const SizedBox(height: 16),
-                ...['electricity', 'water'].map((type) {
-                  final threshold = thresholdMap[type];
-                  final unit = type == 'electricity' ? 'kWh' : 'L';
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    color: Colors.white,
-                    elevation: 2,
-                    child: ListTile(
-                      title: Text(
-                        type.toUpperCase(),
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      subtitle: threshold != null
-                          ? Text(
-                              'Max: ${threshold.maxUsage.toStringAsFixed(2)} $unit',
-                              style: const TextStyle(color: Colors.black54),
-                            )
-                          : const Text(
-                              'Not set',
-                              style: TextStyle(color: Colors.black54),
-                            ),
-                      trailing: const Icon(Icons.edit, color: Colors.black54),
-                      onTap: () => _showThresholdDialog(type, threshold),
-                    ),
-                  );
-                }).toList(),
-              ],
+                  title: Text(user.name),
+                  subtitle: Text(user.email),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: _showEditProfile,
+                  ),
+                );
+              },
             ),
-          );
-        },
+            const SizedBox(height: 20),
+            const Text(
+              "Usage Thresholds",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            FutureBuilder<List<UsageThreshold>>(
+              future: _thresholdsFuture,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final list = snapshot.data!;
+                final map = {for (var t in list) t.type: t};
+                return Column(
+                  children: ["electricity", "water"].map((type) {
+                    final threshold = map[type];
+                    return Card(
+                      child: ListTile(
+                        title: Text(type.toUpperCase()),
+                        subtitle: threshold != null
+                            ? Text(
+                                "Max: ${threshold.maxUsage} ${threshold.unit}")
+                            : const Text("Not set"),
+                        trailing: const Icon(Icons.edit),
+                        onTap: () {
+                          _showThresholdDialog(type, threshold);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+            const SizedBox(height: 30),
+            const Text(
+              "General Settings",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SwitchListTile(
+              title: const Text('Enable Notifications'),
+              value: _notificationsEnabled,
+              onChanged: (val) {
+                setState(() => _notificationsEnabled = val);
+                _savePreference('notifications', val);
+              },
+            ),
+            const SizedBox(height: 25),
+            const Text(
+              "Language",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            DropdownButton<String>(
+              value: _selectedLanguage,
+              items: _languages.map((lang) {
+                return DropdownMenuItem(
+                  value: lang,
+                  child: Text(lang),
+                );
+              }).toList(),
+              isExpanded: true,
+              onChanged: (value) {
+                setState(() => _selectedLanguage = value!);
+                _savePreference('language', value!);
+              },
+            ),
+            const SizedBox(height: 30),
+            const Text(
+              "Account & Support",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Edit Profile'),
+              onTap: _showEditProfile,
+            ),
+            ListTile(
+              leading: const Icon(Icons.lock_outlined),
+              title: const Text('Change Password'),
+              onTap: _showEditProfile,
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_alert_outlined),
+              title: const Text('Add Notification'),
+              onTap: () {
+                Navigator.pushNamed(context, '/alerts');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.support_outlined),
+              title: const Text('Feedback & Support'),
+              onTap: _showSupportDialog,
+            ),
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Privacy Policy'),
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Privacy Policy'),
+                    content: const SingleChildScrollView(
+                      child: Text(
+                        'We are committed to protecting your privacy. Your personal information is kept secure and will never be shared with third parties without your consent.',
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () async {
+                await _dbHelper.resetDatabase();
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                prefs.clear();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("All app data cleared"),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              child: const Text("Reset App Data"),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: _logout,
+              child: const Text("Logout"),
+            ),
+          ],
+        ),
       ),
     );
   }
