@@ -1,108 +1,120 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import '../services/db_helper.dart';
-import '../models/reading.dart';
-import 'add_reading_screen.dart';
-import 'history_analytics_screen.dart';
-import 'payments_screen.dart';
-import 'alerts_screen.dart';
-import 'profile_screen.dart';
-import 'reminders_screen.dart';
-import 'settings_screen.dart';
+import 'package:flutter/material.dart'; // Import Flutter material package for UI components
+import '../services/auth_service.dart'; // Import custom authentication service
+import '../services/db_helper.dart'; // Import custom database helper service
+import '../models/reading.dart'; // Import Reading model
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  // Define HomeScreen as a StatefulWidget for dynamic UI
+  const HomeScreen(
+      {super.key}); // Constructor with key for widget identification
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() =>
+      _HomeScreenState(); // Create mutable state for this widget
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _authService = AuthService();
-  final _dbHelper = DBHelper();
-  int _selectedIndex = 0;
-  List<Reading> _recentReadings = [];
-  bool _showAllReadings = false;
+  // State class for HomeScreen
+  final _authService =
+      AuthService(); // Instantiate AuthService for user authentication
+  final _dbHelper = DBHelper(); // Instantiate DBHelper for database operations
+  int _selectedIndex = 0; // Track selected bottom navigation index
+  List<Reading> _recentReadings = []; // Store list of recent readings
+  bool _showAllReadings =
+      false; // Control whether to show all readings or only the first few
 
   @override
   void initState() {
-    super.initState();
-    _loadData();
+    super.initState(); // Call parent initState
+    _loadData(); // Load recent readings when widget initializes
   }
 
   Future<void> _loadData() async {
+    // Method to load recent readings (dummy data here)
     setState(() {
+      // Update the state with new readings
       _recentReadings = [
         Reading(
           userId: 1,
           usage: 245,
           type: 'electricity',
-          date: DateTime.now().subtract(const Duration(days: 1)),
+          date: DateTime.now().subtract(const Duration(days: 1)), // Yesterday
         ),
         Reading(
           userId: 1,
           usage: 45,
           type: 'water',
-          date: DateTime.now().subtract(const Duration(days: 2)),
+          date:
+              DateTime.now().subtract(const Duration(days: 2)), // Two days ago
         ),
         Reading(
           userId: 1,
           usage: 230,
           type: 'electricity',
-          date: DateTime.now().subtract(const Duration(days: 30)),
+          date:
+              DateTime.now().subtract(const Duration(days: 30)), // 30 days ago
         ),
         Reading(
           userId: 1,
           usage: 42,
           type: 'water',
-          date: DateTime.now().subtract(const Duration(days: 32)),
+          date:
+              DateTime.now().subtract(const Duration(days: 32)), // 32 days ago
         ),
       ];
     });
   }
 
   void _onItemTapped(int index) {
+    // Handle bottom navigation tap events
     setState(() {
+      // Update the selected index
       _selectedIndex = index;
     });
 
+    // Navigate to different screens based on the tapped index
     switch (index) {
-      case 0:
-        // Home - already here
+      case 0: // Home, do nothing
         break;
-      case 1:
+      case 1: // Add Reading screen
         Navigator.pushNamed(context, '/add-reading').then((_) => _loadData());
         break;
-      case 2:
+      case 2: // Insights screen
         Navigator.pushNamed(context, '/insights');
         break;
-      case 3:
+      case 3: // Payments screen
         Navigator.pushNamed(context, '/payments').then((_) => _loadData());
         break;
-      case 4:
-        Navigator.pushNamed(context, '/reminders'); // Reminders
+      case 4: // Reminders screen
+        Navigator.pushNamed(context, '/reminders');
         break;
-      case 5:
-        Navigator.pushNamed(context, '/settings'); // Settings
+      case 5: // Settings screen
+        Navigator.pushNamed(context, '/settings');
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final displayedReadings =
-        _showAllReadings ? _recentReadings : _recentReadings.take(2).toList();
+    final displayedReadings = _showAllReadings
+        ? _recentReadings
+        : _recentReadings
+            .take(2)
+            .toList(); // Determine which readings to display
 
     return Scaffold(
+      // Main scaffold of the screen
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
-        elevation: 0,
+        // Top app bar
+        backgroundColor: const Color(0xFF1F2937), // Dark gray background
+        elevation: 0, // No shadow
         leading: Padding(
+          // Padding for leading widget (logo)
           padding: const EdgeInsets.all(8.0),
-          child: _buildLogo(),
+          child: _buildLogo(), // Custom logo widget
         ),
         title: const Text(
+          // App title
           'Smart Utility Tracker',
           style: TextStyle(
             fontSize: 22,
@@ -111,20 +123,26 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          // Action icons on the app bar
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () => Navigator.pushNamed(context, '/alerts'),
+            icon: const Icon(Icons.notifications_outlined,
+                color: Colors.white), // Notifications icon
+            onPressed: () => Navigator.pushNamed(
+                context, '/alerts'), // Navigate to Alerts screen
             tooltip: 'Alerts',
           ),
           IconButton(
-            icon: _buildProfileIcon(),
-            onPressed: () => Navigator.pushNamed(context, '/profile'),
+            icon: _buildProfileIcon(), // Profile icon
+            onPressed: () => Navigator.pushNamed(
+                context, '/profile'), // Navigate to Profile screen
             tooltip: 'Profile',
           ),
         ],
       ),
       body: Container(
+        // Main body container
         decoration: const BoxDecoration(
+          // Background gradient
           gradient: LinearGradient(
             colors: [Color(0xFF1F2937), Color(0xFF111827)],
             begin: Alignment.topCenter,
@@ -132,11 +150,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: SingleChildScrollView(
+          // Scrollable content
           padding: const EdgeInsets.all(16),
           child: Column(
+            // Vertical layout
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
+              const SizedBox(height: 8), // Spacer
               Text(
                 'Welcome back!',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -144,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.w500,
                     ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 4), // Spacer
               Text(
                 'Track your utilities',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -152,10 +172,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              const SizedBox(height: 32),
-              _buildQuickStats(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 32), // Spacer
+              _buildQuickStats(), // Widget showing electricity and water averages
+              const SizedBox(height: 32), // Spacer
               Row(
+                // Header row for recent readings
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
@@ -165,11 +186,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                   ),
-                  if (_recentReadings.length > 2)
+                  if (_recentReadings.length >
+                      2) // Show "Show All/Show Less" button if more than 2 readings
                     TextButton.icon(
                       onPressed: () {
                         setState(() {
-                          _showAllReadings = !_showAllReadings;
+                          _showAllReadings =
+                              !_showAllReadings; // Toggle readings display
                         });
                       },
                       icon: Icon(
@@ -189,14 +212,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              if (_recentReadings.isEmpty)
+              const SizedBox(height: 12), // Spacer
+              if (_recentReadings.isEmpty) // Show empty state if no readings
                 _emptyReadingsWidget()
-              else
+              else // Otherwise, show reading cards
                 Column(
                   children: displayedReadings.map(_buildReadingCard).toList(),
                 ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 24), // Spacer
               Text(
                 'Quick Actions',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -204,21 +227,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              const SizedBox(height: 16),
-              _buildQuickActions(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16), // Spacer
+              _buildQuickActions(), // Quick actions widget using Wrap for responsive layout
+              const SizedBox(height: 32), // Bottom spacer
             ],
           ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        // Bottom navigation bar
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        backgroundColor: const Color(0xFF1F2937),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue[400],
-        unselectedItemColor: Colors.grey[600],
+        onTap: _onItemTapped, // Handle item taps
+        backgroundColor: const Color(0xFF1F2937), // Dark background
+        type: BottomNavigationBarType.fixed, // Fixed navigation bar
+        selectedItemColor: Colors.blue[400], // Selected item color
+        unselectedItemColor: Colors.grey[600], // Unselected item color
         items: const [
+          // Navigation items
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: 'Add'),
           BottomNavigationBarItem(
@@ -233,21 +258,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickStats() {
-    final electricityReadings =
-        _recentReadings.where((r) => r.type == 'electricity').toList();
-    final waterReadings =
-        _recentReadings.where((r) => r.type == 'water').toList();
+    // Widget for electricity & water average cards
+    final electricityReadings = _recentReadings
+        .where((r) => r.type == 'electricity')
+        .toList(); // Filter electricity readings
+    final waterReadings = _recentReadings
+        .where((r) => r.type == 'water')
+        .toList(); // Filter water readings
 
     final electricityAvg = electricityReadings.isNotEmpty
         ? electricityReadings.fold<double>(0, (sum, r) => sum + r.usage) /
-            electricityReadings.length
+            electricityReadings.length // Calculate average electricity usage
         : 0;
     final waterAvg = waterReadings.isNotEmpty
         ? waterReadings.fold<double>(0, (sum, r) => sum + r.usage) /
-            waterReadings.length
+            waterReadings.length // Calculate average water usage
         : 0;
 
     return Row(
+      // Row to show two stat cards side by side
       children: [
         Expanded(
           child: _buildStatCard(
@@ -257,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Icons.bolt,
               Colors.amber),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 12), // Spacer
         Expanded(
           child: _buildStatCard('Water', waterAvg.toStringAsFixed(1), 'L',
               Icons.water_drop, Colors.blue),
@@ -268,29 +297,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStatCard(
       String title, String value, String unit, IconData icon, Color color) {
+    // Individual stat card
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF374151),
+        color: const Color(0xFF374151), // Dark gray background
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF4B5563)),
+        border: Border.all(color: const Color(0xFF4B5563)), // Border color
       ),
       child: Column(
+        // Vertical layout for icon, title, value
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            // Icon + Title row
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
+                  color: color.withOpacity(0.2), // Icon background
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: color, size: 20),
+                child: Icon(icon, color: color, size: 20), // Stat icon
               ),
               const SizedBox(width: 8),
               Text(
-                title,
+                title, // Stat title
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
@@ -301,9 +333,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 12),
           Row(
+            // Value + Unit row
             children: [
               Text(
-                value,
+                value, // Numeric value
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -312,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(width: 4),
               Text(
-                unit,
+                unit, // Unit text
                 style: TextStyle(
                   color: Colors.grey[400],
                   fontSize: 14,
@@ -322,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Average Usage',
+            'Average Usage', // Description below value
             style: TextStyle(
               color: Colors.grey[400],
               fontSize: 12,
@@ -334,40 +367,51 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions() {
-    return GridView(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.5,
-      ),
+    // Wrap widget for multiple action cards
+    return Wrap(
+      spacing: 12, // Horizontal spacing
+      runSpacing: 12, // Vertical spacing
       children: [
-        _buildActionCard(
-          'Add Reading',
-          Icons.add_circle_outline,
-          Colors.blue,
-          () => Navigator.pushNamed(context, '/add-reading')
-              .then((_) => _loadData()),
+        SizedBox(
+          width:
+              (MediaQuery.of(context).size.width - 44) / 2, // Responsive width
+          child: _buildActionCard(
+            'Add Reading',
+            Icons.add_circle_outline,
+            Colors.blue,
+            () => Navigator.pushNamed(context, '/add-reading').then(
+                (_) => _loadData()), // Navigate and reload data after adding
+          ),
         ),
-        _buildActionCard(
-          'View History',
-          Icons.history,
-          Colors.green,
-          () => Navigator.pushNamed(context, '/insights'),
+        SizedBox(
+          width: (MediaQuery.of(context).size.width - 44) / 2,
+          child: _buildActionCard(
+            'View History',
+            Icons.history,
+            Colors.green,
+            () => Navigator.pushNamed(
+                context, '/insights'), // Navigate to insights
+          ),
         ),
-        _buildActionCard(
-          'Payments',
-          Icons.payment,
-          Colors.purple,
-          () => Navigator.pushNamed(context, '/payments'),
+        SizedBox(
+          width: (MediaQuery.of(context).size.width - 44) / 2,
+          child: _buildActionCard(
+            'Payments',
+            Icons.payment,
+            Colors.purple,
+            () => Navigator.pushNamed(
+                context, '/payments'), // Navigate to payments
+          ),
         ),
-        _buildActionCard(
-          'Analytics',
-          Icons.analytics,
-          Colors.orange,
-          () => Navigator.pushNamed(context, '/insights'),
+        SizedBox(
+          width: (MediaQuery.of(context).size.width - 44) / 2,
+          child: _buildActionCard(
+            'Analytics',
+            Icons.analytics,
+            Colors.orange,
+            () => Navigator.pushNamed(
+                context, '/insights'), // Navigate to analytics/insights
+          ),
         ),
       ],
     );
@@ -375,13 +419,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildActionCard(
       String title, IconData icon, Color color, VoidCallback onTap) {
+    // Individual action card
     return GestureDetector(
-      onTap: onTap,
+      onTap: onTap, // Handle tap event
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF374151),
+          color: const Color(0xFF374151), // Card background
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF4B5563)),
+          border: Border.all(color: const Color(0xFF4B5563)), // Card border
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -391,14 +436,14 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
+                  color: color.withOpacity(0.2), // Icon background
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 24),
+                child: Icon(icon, color: color, size: 24), // Icon
               ),
               const SizedBox(height: 12),
               Text(
-                title,
+                title, // Action title
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
@@ -414,32 +459,36 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildLogo() {
+    // Logo widget in app bar
     try {
       return ClipOval(
         child: Image.asset(
-          'assets/logo.jpg',
+          'assets/logo.jpg', // Logo image
           fit: BoxFit.cover,
           width: 40,
           height: 40,
-          errorBuilder: (_, __, ___) => _buildFallbackLogo(),
+          errorBuilder: (_, __, ___) =>
+              _buildFallbackLogo(), // Fallback if image not found
         ),
       );
     } catch (e) {
+      // Fallback for any other errors
       return _buildFallbackLogo();
     }
   }
 
   Widget _buildFallbackLogo() {
+    // Simple fallback logo
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
         color: Colors.blue,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20), // Circular container
       ),
       child: const Center(
         child: Text(
-          "SU",
+          "SU", // Initials as fallback
           style: TextStyle(
               fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
         ),
@@ -448,15 +497,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProfileIcon() {
+    // Profile icon in app bar
     return Container(
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
+        shape: BoxShape.circle, // Circular background
         color: Colors.blue.shade800,
       ),
       child: const Icon(
-        Icons.person,
+        Icons.person, // Person icon
         color: Colors.white,
         size: 20,
       ),
@@ -464,27 +514,31 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _emptyReadingsWidget() {
+    // Empty state widget if no readings
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 32),
       decoration: BoxDecoration(
-        color: const Color(0xFF374151),
+        color: const Color(0xFF374151), // Background
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF4B5563)),
+        border: Border.all(color: const Color(0xFF4B5563)), // Border
       ),
       child: Column(
         children: [
-          Icon(Icons.trending_up, size: 48, color: Colors.blue[400]),
+          Icon(Icons.trending_up,
+              size: 48, color: Colors.blue[400]), // Empty state icon
           const SizedBox(height: 12),
           Text('No readings yet',
-              style: TextStyle(color: Colors.grey[300], fontSize: 16)),
+              style: TextStyle(
+                  color: Colors.grey[300], fontSize: 16)), // Main message
           const SizedBox(height: 4),
           Text('Add your first reading to get started',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14)),
+              style:
+                  TextStyle(color: Colors.grey[500], fontSize: 14)), // Subtext
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () => Navigator.pushNamed(context, '/add-reading')
-                .then((_) => _loadData()),
+                .then((_) => _loadData()), // Add first reading button
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Add First Reading'),
             style: ElevatedButton.styleFrom(
@@ -498,18 +552,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildReadingCard(Reading r) {
-    IconData icon = r.type == 'water' ? Icons.water_drop : Icons.bolt;
-    Color color = r.type == 'water' ? Colors.blue : Colors.amber;
+    // Widget for individual reading card
+    IconData icon =
+        r.type == 'water' ? Icons.water_drop : Icons.bolt; // Icon based on type
+    Color color =
+        r.type == 'water' ? Colors.blue : Colors.amber; // Color based on type
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12), // Space below card
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF374151),
+        color: const Color(0xFF374151), // Background
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF4B5563)),
+        border: Border.all(color: const Color(0xFF4B5563)), // Border
       ),
       child: Row(
+        // Horizontal layout
         children: [
           Container(
             padding: const EdgeInsets.all(12),
@@ -517,15 +575,15 @@ class _HomeScreenState extends State<HomeScreen> {
               color: color.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: 24), // Reading icon
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 16), // Spacer
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  r.type.toUpperCase(),
+                  r.type.toUpperCase(), // Type label
                   style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -533,7 +591,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${r.date.day}/${r.date.month}/${r.date.year}',
+                  '${r.date.day}/${r.date.month}/${r.date.year}', // Date
                   style: TextStyle(color: Colors.grey[400], fontSize: 12),
                 ),
               ],
@@ -542,13 +600,13 @@ class _HomeScreenState extends State<HomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('${r.usage}',
+              Text('${r.usage}', // Usage value
                   style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 18)),
               Text(
-                r.type == 'electricity' ? 'kWh' : 'L',
+                r.type == 'electricity' ? 'kWh' : 'L', // Unit
                 style: TextStyle(color: Colors.grey[400], fontSize: 12),
               ),
             ],

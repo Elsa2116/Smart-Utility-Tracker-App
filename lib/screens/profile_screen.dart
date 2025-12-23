@@ -6,33 +6,39 @@ import '../services/auth_service.dart';
 import '../screens/login_screen.dart';
 import '../models/user.dart';
 
+// ProfileScreen displays the user's profile and allows updating name, password, and profile picture
 class ProfileScreen extends StatefulWidget {
-  final int userId;
+  final int userId; // ID of the user whose profile is being displayed
 
-  const ProfileScreen({Key? key, required this.userId}) : super(key: key);
+  const ProfileScreen({super.key, required this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final DBHelper _dbHelper = DBHelper();
-  final AuthService _authService = AuthService();
-  final ImagePicker _imagePicker = ImagePicker();
-  User? _user;
-  bool _isLoading = true;
-  File? _profileImage;
-  String? _profileImageUrl;
+  final DBHelper _dbHelper = DBHelper(); // Database helper for CRUD operations
+  final AuthService _authService =
+      AuthService(); // Authentication service for logout
+  final ImagePicker _imagePicker =
+      ImagePicker(); // Image picker to select profile photo
 
+  User? _user; // Holds the current user object
+  bool _isLoading = true; // Shows loading indicator while fetching data
+  File? _profileImage; // Local image file if user picks a new image
+  String? _profileImageUrl; // URL or path of the user's profile image
+
+  // Controllers for the text fields
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
+    _loadUser(); // Load user data when screen initializes
   }
 
+  // Fetch user data from the database
   Future<void> _loadUser() async {
     try {
       final user = await _dbHelper.getUserById(widget.userId);
@@ -41,7 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _user = user;
           _nameController.text = user.name;
           _profileImageUrl = user.profileImageUrl;
-          _isLoading = false;
+          _isLoading = false; // Stop loading once data is fetched
         });
       }
     } catch (e) {
@@ -52,17 +58,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // Allow the user to pick an image from the gallery
   Future<void> _pickImage() async {
     final pickedFile = await _imagePicker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 80,
+      imageQuality: 80, // Compress the image for better performance
     );
+
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
         _profileImageUrl = pickedFile.path;
       });
 
+      // Update the user object in the database with the new image
       if (_user != null) {
         await _dbHelper.updateUser(User(
           id: _user!.id,
@@ -76,12 +85,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // Update the user's profile (name, password, profile image)
   Future<void> _updateProfile() async {
     if (_user != null && _nameController.text.isNotEmpty) {
       final updatedUser = User(
         id: _user!.id,
         name: _nameController.text,
         email: _user!.email,
+        // Keep old password if new password is empty
         password: _passwordController.text.isEmpty
             ? _user!.password
             : _passwordController.text,
@@ -89,24 +100,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         profileImageUrl: _profileImageUrl,
       );
 
-      await _dbHelper.updateUser(updatedUser);
+      await _dbHelper.updateUser(updatedUser); // Save changes to the database
 
       setState(() {
-        _user = updatedUser;
+        _user = updatedUser; // Update local user object
       });
 
+      // Show confirmation
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Profile updated successfully")),
       );
     }
   }
 
+  // Logout the user and navigate to LoginScreen
   Future<void> _logout() async {
-    await _authService.logout();
+    await _authService.logout(); // Call logout service
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
+      (route) => false, // Remove all previous routes
     );
   }
 
@@ -115,31 +128,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child:
+                  CircularProgressIndicator()) // Show loader while fetching data
           : Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
+                  // Profile picture display and pick image gesture
                   GestureDetector(
                     onTap: _pickImage,
                     child: CircleAvatar(
                       radius: 50,
                       backgroundImage: _profileImage != null
-                          ? FileImage(_profileImage!)
+                          ? FileImage(_profileImage!) // Show picked image
                           : (_profileImageUrl != null
                               ? NetworkImage(_profileImageUrl!) as ImageProvider
                               : null),
                       child: _profileImage == null && _profileImageUrl == null
-                          ? const Icon(Icons.person, size: 50)
+                          ? const Icon(Icons.person, size: 50) // Default icon
                           : null,
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Name input field
                   TextField(
                     controller: _nameController,
                     decoration: const InputDecoration(labelText: 'Name'),
                   ),
                   const SizedBox(height: 16),
+
+                  // Password input field (optional)
                   TextField(
                     controller: _passwordController,
                     obscureText: true,
@@ -147,11 +167,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         labelText: 'New Password (optional)'),
                   ),
                   const SizedBox(height: 24),
+
+                  // Button to save profile changes
                   ElevatedButton(
                     onPressed: _updateProfile,
                     child: const Text('Save Changes'),
                   ),
                   const SizedBox(height: 16),
+
+                  // Logout button
                   ElevatedButton(
                     onPressed: _logout,
                     style:
@@ -166,6 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
+    // Dispose controllers to free resources
     _nameController.dispose();
     _passwordController.dispose();
     super.dispose();

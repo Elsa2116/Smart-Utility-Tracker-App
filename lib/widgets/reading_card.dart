@@ -4,7 +4,7 @@ import '../models/reading.dart';
 class ReadingCard extends StatelessWidget {
   final Reading reading;
 
-  const ReadingCard({Key? key, required this.reading}) : super(key: key);
+  const ReadingCard({super.key, required this.reading});
 
   @override
   Widget build(BuildContext context) {

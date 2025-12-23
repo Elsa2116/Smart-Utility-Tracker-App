@@ -5,7 +5,7 @@ import '../models/reading.dart'; // Reading model
 
 class AddReadingScreen extends StatefulWidget {
   // Screen to add new reading
-  const AddReadingScreen({Key? key}) : super(key: key); // Constructor
+  const AddReadingScreen({super.key}); // Constructor
 
   @override
   State<AddReadingScreen> createState() =>
@@ -74,115 +74,93 @@ class _AddReadingScreenState extends State<AddReadingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Main screen layout
       appBar: AppBar(
-        title: const Text('Add Reading'), // App bar title
-        centerTitle: true, // Center the title
+        title: const Text('Add Reading'),
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        // Scrollable page
-        padding: const EdgeInsets.all(16.0), // Screen padding
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, // Align left
-          children: [
-            // Section title
-            const Text('Utility Type',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-
-            // Dropdown for electricity/water
-            DropdownButton<String>(
-              value: _selectedType, // Current selected
-              isExpanded: true, // Full width
-              items: ['electricity', 'water'].map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(type.toUpperCase()), // Show in uppercase
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedType = value!; // Update selected type
-                });
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            // Usage label
-            const Text('Usage Amount',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-
-            // Usage input field
-            TextField(
-              controller: _usageController, // Binds to usage
-              keyboardType: TextInputType.number, // Numeric keyboard
-              decoration: InputDecoration(
-                labelText: 'Enter usage', // Placeholder text
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                suffixText: _selectedType == 'electricity'
-                    ? 'kWh'
-                    : 'L', // Unit display
+      resizeToAvoidBottomInset:
+          true, // allows screen to resize when keyboard opens
+      body: SafeArea(
+        // prevents content from being hidden under status bar/notch
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Utility Type',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              DropdownButton<String>(
+                value: _selectedType,
+                isExpanded: true,
+                items: ['electricity', 'water'].map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(type.toUpperCase()),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedType = value!;
+                  });
+                },
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Date label
-            const Text('Date',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-
-            // Date selector container
-            GestureDetector(
-              onTap: () => _selectDate(context), // Opens calendar
-              child: Container(
-                padding: const EdgeInsets.all(12), // Inner spacing
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey), // Border outline
-                  borderRadius: BorderRadius.circular(8), // Rounded corners
+              const SizedBox(height: 20),
+              const Text('Usage Amount',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _usageController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Enter usage',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  suffixText: _selectedType == 'electricity' ? 'kWh' : 'L',
                 ),
-                child: Text(
-                    _selectedDate.toString().split(' ')[0]), // Show date only
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Notes label
-            const Text('Notes',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-
-            // Notes input area
-            TextField(
-              controller: _notesController, // Notes controller
-              maxLines: 3, // Multi-line
-              decoration: InputDecoration(
-                labelText: 'Add notes (optional)', // Label
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Button to add reading
-            SizedBox(
-              width: double.infinity, // Full width button
-              child: ElevatedButton(
-                onPressed: _addReading, // Calls add function
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12), // Button height
+              const SizedBox(height: 20),
+              const Text('Date',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => _selectDate(context),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(_selectedDate.toString().split(' ')[0]),
                 ),
-                child: const Text('Add Reading',
-                    style: TextStyle(fontSize: 16)), // Button text
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              const Text('Notes',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _notesController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'Add notes (optional)',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _addReading,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child:
+                      const Text('Add Reading', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

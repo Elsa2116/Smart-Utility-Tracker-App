@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
+// Main Reminders Screen as a StatefulWidget to handle dynamic data
 class RemindersScreen extends StatefulWidget {
-  const RemindersScreen({Key? key}) : super(key: key);
+  const RemindersScreen({super.key});
 
   @override
   State<RemindersScreen> createState() => _RemindersScreenState();
 }
 
 class _RemindersScreenState extends State<RemindersScreen> {
+  // Sample list of reminders
   final List<Map<String, dynamic>> _reminders = [
     {
       'title': 'Check Electricity Meter',
@@ -23,11 +25,13 @@ class _RemindersScreenState extends State<RemindersScreen> {
     },
   ]; // Removed gas reminder
 
+  // Function to delete a reminder by ID
   void _deleteReminder(int id) {
     setState(() {
       _reminders.removeWhere((reminder) => reminder['id'] == id);
     });
 
+    // Show a SnackBar confirmation when a reminder is deleted
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Reminder deleted successfully'),
@@ -36,6 +40,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
     );
   }
 
+  // Function to show a confirmation dialog before deleting a reminder
   void _showDeleteDialog(int id, String title) {
     showDialog(
       context: context,
@@ -44,13 +49,13 @@ class _RemindersScreenState extends State<RemindersScreen> {
         content: Text('Are you sure you want to delete "$title"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context), // Cancel action
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _deleteReminder(id);
+              _deleteReminder(id); // Delete action
             },
             child: const Text(
               'Delete',
@@ -69,6 +74,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
         title: const Text('Reminders'),
         centerTitle: true,
         actions: [
+          // Display number of reminders in the app bar
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: Center(
@@ -80,6 +86,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
           ),
         ],
       ),
+      // Body displays either a message if empty or the list of reminders
       body: _reminders.isEmpty
           ? const Center(
               child: Column(
@@ -102,6 +109,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
               itemCount: _reminders.length,
               itemBuilder: (context, index) {
                 final reminder = _reminders[index];
+
+                // Dismissible widget allows swipe-to-delete functionality
                 return Dismissible(
                   key: Key(reminder['id'].toString()),
                   background: Container(
@@ -116,6 +125,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   ),
                   direction: DismissDirection.endToStart,
                   confirmDismiss: (direction) async {
+                    // Show confirmation dialog before dismissing
                     if (direction == DismissDirection.endToStart) {
                       return await showDialog(
                         context: context,
@@ -142,6 +152,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     return false;
                   },
                   onDismissed: (direction) {
+                    // Delete reminder when dismissed
                     _deleteReminder(reminder['id']);
                   },
                   child: Card(
@@ -161,6 +172,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Switch to enable/disable a reminder
                           Switch(
                             value: reminder['enabled'],
                             onChanged: (value) {
@@ -169,6 +181,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                               });
                             },
                           ),
+                          // Delete button to manually delete a reminder
                           IconButton(
                             icon: const Icon(Icons.delete_outline),
                             color: Colors.red,
@@ -186,8 +199,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 );
               },
             ),
+      // Floating Action Button to add a new reminder
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          // Show dialog for "coming soon" feature
           showDialog(
             context: context,
             builder: (context) => AlertDialog(

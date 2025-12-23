@@ -1,25 +1,46 @@
+/// Represents a user in the utility tracker system.
+///
+/// Contains personal information, authentication details, and optional metadata
+/// such as profile image, updated time, and active status.
 class User {
+  // Unique ID of the user (auto-incremented in the database)
   final int? id;
-  final String name;
-  final String email;
-  final String password;
-  final DateTime createdAt;
-  final String? profileImageUrl;
-  final DateTime? updatedAt; // Missing in your current model
-  final bool? isActive; // Optional field for future use
 
+  // Full name of the user
+  final String name;
+
+  // Email address of the user (unique)
+  final String email;
+
+  // User password (hashed or plain depending on your implementation)
+  final String password;
+
+  // Date and time when the user account was created
+  final DateTime createdAt;
+
+  // Optional URL for the user's profile image
+  final String? profileImageUrl;
+
+  // Optional last updated timestamp
+  final DateTime? updatedAt;
+
+  // Optional flag indicating if the account is active (default: true)
+  final bool? isActive;
+
+  // Constructor for creating a User object
   User({
-    this.id,
+    this.id, // optional, DB generates it
     required this.name,
     required this.email,
     required this.password,
     required this.createdAt,
     this.profileImageUrl,
     this.updatedAt,
-    this.isActive = true,
+    this.isActive = true, // default active
   });
 
-  // Copy with method for immutability
+  /// Creates a copy of the User object with optional modifications
+  /// Useful for immutability and updating specific fields
   User copyWith({
     int? id,
     String? name,
@@ -42,20 +63,22 @@ class User {
     );
   }
 
+  /// Converts the User object to a Map for storing in the database
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
       'email': email,
       'password': password,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': createdAt.toIso8601String(), // Store as ISO string
       'profileImageUrl': profileImageUrl,
       if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
-      // Note: isActive is not in your database schema yet
+      // Note: isActive is not yet stored in DB
       // 'isActive': isActive ? 1 : 0,
     };
   }
 
+  /// Creates a User object from a Map (retrieved from the database)
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
       id: map['id'] as int?,
@@ -71,9 +94,10 @@ class User {
     );
   }
 
-  // For JSON serialization
+  /// Converts User object to JSON (for API or storage)
   Map<String, dynamic> toJson() => toMap();
 
+  /// Creates a User object from JSON
   factory User.fromJson(Map<String, dynamic> json) => User.fromMap(json);
 
   @override

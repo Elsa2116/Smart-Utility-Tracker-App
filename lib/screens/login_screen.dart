@@ -2,46 +2,52 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 
+// LoginScreen widget
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // Controllers to get user input from text fields
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  // Instance of the authentication service
   final _authService = AuthService();
+
+  // Boolean to track loading state during login
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     print('LoginScreen: initState called');
+    // Check if user is already logged in
     _checkLoginStatus();
   }
 
+  // Function to check login status
   Future<void> _checkLoginStatus() async {
     print('LoginScreen: Checking login status...');
     final isLoggedIn = await _authService.checkLoginStatus();
     print('LoginScreen: checkLoginStatus returned: $isLoggedIn');
 
     if (isLoggedIn && mounted) {
-      print('LoginScreen: User is already logged in, redirecting to /home');
-      // Add a small delay for better UX
+      // Navigate to home screen if already logged in
       await Future.delayed(const Duration(milliseconds: 100));
       Navigator.of(context).pushReplacementNamed('/home');
-    } else {
-      print('LoginScreen: User is not logged in, showing login form');
     }
   }
 
+  // Function to validate user input and initiate login
   void _validateAndLogin() {
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
 
-    // Validate inputs
+    // Basic validation checks
     if (email.isEmpty) {
       _showErrorDialog('Email Required', 'Please enter your email address');
       return;
@@ -59,42 +65,45 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (password.length < 4) {
       _showErrorDialog(
-          'Invalid Password', 'Password must be at least 4 characters');
+        'Invalid Password',
+        'Password must be at least 4 characters',
+      );
       return;
     }
 
-    _login();
+    // Call login function if validation passes
+    _login(email, password);
   }
 
-  Future<void> _login() async {
+  // Function to handle login process
+  Future<void> _login(String email, String password) async {
     print('LoginScreen: Starting login process...');
     setState(() {
-      _isLoading = true;
+      _isLoading = true; // Show loading indicator
     });
 
-    final success = await _authService.login(
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
-    );
+    final success = await _authService.login(email, password);
 
-    if (mounted) {
-      if (success) {
-        print('LoginScreen: Login successful');
-        _showSuccessDialog('Login Successful', 'Welcome back!', () {
-          print('LoginScreen: Navigating to /home after success');
-          Navigator.of(context).pushReplacementNamed('/home');
-        });
-      } else {
-        print('LoginScreen: Login failed');
-        setState(() {
-          _isLoading = false;
-        });
-        _showErrorDialog(
-            'Login Failed', 'Invalid email or password. Please try again.');
-      }
+    if (!mounted) return;
+
+    if (success) {
+      // Show success dialog and navigate to home screen
+      _showSuccessDialog('Login Successful', 'Welcome back!', () {
+        Navigator.of(context).pushReplacementNamed('/home');
+      });
+    } else {
+      // Reset loading state and show error dialog
+      setState(() {
+        _isLoading = false;
+      });
+      _showErrorDialog(
+        'Login Failed',
+        'Invalid email or password. Please try again.',
+      );
     }
   }
 
+  // Function to show an error dialog
   void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
@@ -103,10 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () {
-              print('LoginScreen: Error dialog closed');
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             child: const Text('OK'),
           ),
         ],
@@ -114,7 +120,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _showSuccessDialog(String title, String message, VoidCallback onOk) {
+  // Function to show a success dialog
+  void _showSuccessDialog(
+    String title,
+    String message,
+    VoidCallback onOk,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -123,9 +134,8 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              print('LoginScreen: Success dialog closed, executing callback');
               Navigator.pop(context);
-              onOk();
+              onOk(); // Execute callback on OK
             },
             child: const Text('OK'),
           ),
@@ -136,48 +146,54 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('LoginScreen: Building widget');
     return Scaffold(
       appBar: AppBar(
         title: const Text('Smart Utility Tracker'),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 40),
+            // App logo/icon
             const Icon(Icons.electric_meter, size: 80, color: Colors.blue),
             const SizedBox(height: 20),
+            // Welcome text
             const Text(
               'Welcome Back',
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 30),
+            // Email input field
             TextField(
               controller: _emailController,
               enabled: !_isLoading,
               decoration: InputDecoration(
                 labelText: 'Email',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 prefixIcon: const Icon(Icons.email),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
             const SizedBox(height: 16),
+            // Password input field
             TextField(
               controller: _passwordController,
               enabled: !_isLoading,
               obscureText: true,
               decoration: InputDecoration(
                 labelText: 'Password',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 prefixIcon: const Icon(Icons.lock),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
             const SizedBox(height: 24),
+            // Login button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -191,10 +207,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Login', style: TextStyle(fontSize: 16)),
+                    : const Text(
+                        'Login',
+                        style: TextStyle(fontSize: 16),
+                      ),
               ),
             ),
             const SizedBox(height: 16),
+            // Navigation to Register screen
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -203,10 +223,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   onTap: _isLoading
                       ? null
                       : () {
-                          print('LoginScreen: Navigating to RegisterScreen');
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                                builder: (context) => const RegisterScreen()),
+                              builder: (_) => const RegisterScreen(),
+                            ),
                           );
                         },
                   child: Text(
@@ -227,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    print('LoginScreen: dispose called');
+    // Dispose controllers to free up memory
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();

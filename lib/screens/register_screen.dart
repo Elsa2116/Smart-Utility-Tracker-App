@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import '../services/auth_service.dart'; // Import your authentication service
 
+// The main RegisterScreen widget
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  // Controllers to retrieve user input from TextFields
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
-  bool _isLoading = false;
 
+  final _authService = AuthService(); // Instance of your authentication service
+  bool _isLoading = false; // Loading state for async operations
+
+  // Function to validate user inputs before registration
   bool _validateInputs() {
     if (_nameController.text.isEmpty) {
       _showError('Please enter your name');
@@ -41,9 +45,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _showError('Passwords do not match');
       return false;
     }
-    return true;
+    return true; // All validations passed
   }
 
+  // Show an error dialog
   void _showError(String message) {
     showDialog(
       context: context,
@@ -60,6 +65,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Show a success dialog and navigate to HomeScreen
   void _showSuccess(String message) {
     showDialog(
       context: context,
@@ -79,15 +85,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Register the user
   Future<void> _register() async {
     if (!_validateInputs()) {
-      return;
+      return; // Stop if validation fails
     }
 
     setState(() {
-      _isLoading = true;
+      _isLoading = true; // Show loading indicator
     });
 
+    // Call the register function from AuthService
     final success = await _authService.register(
       _nameController.text,
       _emailController.text,
@@ -96,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (mounted) {
       setState(() {
-        _isLoading = false;
+        _isLoading = false; // Hide loading indicator
       });
 
       if (success) {
@@ -127,9 +135,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 30),
+            // Name input
             TextField(
               controller: _nameController,
-              enabled: !_isLoading,
+              enabled: !_isLoading, // Disable input while loading
               decoration: InputDecoration(
                 labelText: 'Full Name',
                 border:
@@ -138,6 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            // Email input
             TextField(
               controller: _emailController,
               enabled: !_isLoading,
@@ -149,10 +159,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            // Password input
             TextField(
               controller: _passwordController,
               enabled: !_isLoading,
-              obscureText: true,
+              obscureText: true, // Hide text
               decoration: InputDecoration(
                 labelText: 'Password',
                 border:
@@ -161,6 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            // Confirm password input
             TextField(
               controller: _confirmPasswordController,
               enabled: !_isLoading,
@@ -173,6 +185,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 24),
+            // Register button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -190,6 +203,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            // Navigate to login screen
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -215,6 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    // Dispose controllers to free memory
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();

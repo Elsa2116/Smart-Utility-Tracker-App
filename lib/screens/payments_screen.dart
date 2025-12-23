@@ -1,14 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import '../services/db_helper.dart';
 import '../services/pdf_generator.dart';
 import '../models/payment.dart';
 import 'camera_screen.dart';
 
+/// Screen to display and manage user payments
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
 
@@ -17,33 +15,36 @@ class PaymentsScreen extends StatefulWidget {
 }
 
 class _PaymentsScreenState extends State<PaymentsScreen> {
-  final DBHelper _dbHelper = DBHelper();
-  List<Payment> _payments = [];
+  final DBHelper _dbHelper = DBHelper(); // Database helper instance
+  List<Payment> _payments = []; // List to store payments fetched from DB
 
   @override
   void initState() {
     super.initState();
-    _loadPayments();
+    _loadPayments(); // Load payments when screen is initialized
   }
 
+  /// Load payments from the database for a specific user
   Future<void> _loadPayments() async {
     try {
       final payments =
-          await _dbHelper.getPaymentsByUserId(1); // replace with actual userId
+          await _dbHelper.getPaymentsByUserId(1); // Replace with actual userId
       setState(() {
         _payments = payments;
       });
     } catch (e) {
+      // Show error if fetching fails
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading payments: $e')),
       );
     }
   }
 
+  /// Update payment status in the database and reload list
   Future<void> _updatePaymentStatus(int id, String newStatus) async {
     try {
       await _dbHelper.updatePaymentStatus(id, newStatus);
-      await _loadPayments();
+      await _loadPayments(); // Refresh payments after update
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Payment marked as $newStatus')),
       );
@@ -54,6 +55,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     }
   }
 
+  /// Generate PDF receipt for a payment
   Future<void> _generateReceipt(Payment payment) async {
     try {
       await PdfGenerator.generateReceipt(payment);
@@ -67,6 +69,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     }
   }
 
+  /// Map payment method codes to user-friendly names with emojis
   String _getPaymentMethodName(String method) {
     switch (method) {
       case 'mobile':
@@ -80,6 +83,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     }
   }
 
+  /// Show bottom sheet with options to manage a payment
   void _showPaymentOptions(Payment payment) {
     showModalBottomSheet(
       context: context,
@@ -92,12 +96,15 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Title
               Text('Manage Payment',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                       color: Colors.deepPurple[700])),
               const SizedBox(height: 16),
+
+              // Button to mark payment as completed
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
@@ -107,10 +114,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 onPressed: () async {
                   await _updatePaymentStatus(payment.id!, 'completed');
                   await _generateReceipt(payment);
-                  if (mounted) Navigator.pop(context);
+                  if (mounted) Navigator.pop(context); // Close bottom sheet
                 },
               ),
               const SizedBox(height: 10),
+
+              // Button to delete payment
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
@@ -124,7 +133,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Payment deleted')),
                     );
-                    if (mounted) Navigator.pop(context);
+                    if (mounted) Navigator.pop(context); // Close bottom sheet
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Error deleting payment: $e')),
@@ -191,7 +200,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                               ? '⚡'
                               : payment.type == 'water'
                                   ? '💧'
-                                  : '', // Gas removed
+                                  : '', // Emoji for utility type
                           style: const TextStyle(fontSize: 20),
                         ),
                       ),
@@ -234,6 +243,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 );
               },
             ),
+      // Floating button to add a new payment
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {
@@ -252,7 +262,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   bottom: MediaQuery.of(context).viewInsets.bottom + 16,
                 ),
                 child: AddPaymentForm(
-                  onPaymentAdded: () => _loadPayments(),
+                  onPaymentAdded: () => _loadPayments(), // Refresh payments
                 ),
               );
             },
@@ -284,10 +294,12 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
 
   final DBHelper _dbHelper = DBHelper();
 
+  /// Dummy verification of ID photo with passcode
   bool _verifyIDWithPasscode(XFile idPhoto, String passcode) {
-    return passcode == '1234';
+    return passcode == '1234'; // Example verification logic
   }
 
+  /// Open camera screen to capture ID & face
   Future<void> _pickID() async {
     try {
       final imagePath = await Navigator.push(
@@ -317,6 +329,7 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
     }
   }
 
+  /// Save payment to database after validation & verification
   Future<void> _savePayment() async {
     if (_formKey.currentState!.validate()) {
       if (_idPhoto == null) {
@@ -336,7 +349,7 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
         return;
       }
 
-      final userId = 1; // replace with actual user id
+      const userId = 1; // Replace with actual user id
       final payment = Payment(
         id: null,
         userId: userId,
@@ -351,8 +364,8 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
       try {
         await _dbHelper.insertPayment(payment);
 
-        widget.onPaymentAdded();
-        Navigator.pop(context);
+        widget.onPaymentAdded(); // Refresh payments in main screen
+        Navigator.pop(context); // Close bottom sheet
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Payment added successfully')),
         );
@@ -379,6 +392,7 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Amount input field
             TextFormField(
               controller: _amountController,
               keyboardType: TextInputType.number,
@@ -390,8 +404,10 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
                   value == null || value.isEmpty ? 'Enter amount' : null,
             ),
             const SizedBox(height: 12),
+
+            // Dropdown for utility type
             DropdownButtonFormField<String>(
-              value: _selectedUtility,
+              initialValue: _selectedUtility,
               decoration: const InputDecoration(
                 labelText: 'Select Utility',
                 border: OutlineInputBorder(),
@@ -400,15 +416,16 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
                 DropdownMenuItem(
                     value: 'electricity', child: Text('Electricity')),
                 DropdownMenuItem(value: 'water', child: Text('Water')),
-                // Gas removed
               ],
               onChanged: (value) {
                 if (value != null) setState(() => _selectedUtility = value);
               },
             ),
             const SizedBox(height: 12),
+
+            // Dropdown for payment method
             DropdownButtonFormField<String>(
-              value: _selectedMethod,
+              initialValue: _selectedMethod,
               decoration: const InputDecoration(
                 labelText: 'Payment Method',
                 border: OutlineInputBorder(),
@@ -423,6 +440,8 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
               },
             ),
             const SizedBox(height: 12),
+
+            // Passcode input for ID verification
             TextFormField(
               controller: _passcodeController,
               keyboardType: TextInputType.number,
@@ -435,11 +454,15 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
                   value == null || value.isEmpty ? 'Enter passcode' : null,
             ),
             const SizedBox(height: 12),
+
+            // Button to capture ID & face
             ElevatedButton.icon(
               icon: const Icon(Icons.camera_alt),
               label: const Text('Scan ID & Face'),
               onPressed: _pickID,
             ),
+
+            // Show captured ID image
             if (_idPhoto != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -449,6 +472,8 @@ class _AddPaymentFormState extends State<AddPaymentForm> {
                 ),
               ),
             const SizedBox(height: 12),
+
+            // Button to save payment
             ElevatedButton(
               onPressed: _savePayment,
               child: const Text('Add Payment'),

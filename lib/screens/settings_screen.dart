@@ -6,30 +6,37 @@ import '../models/threshold.dart';
 import '../models/user.dart';
 import '../screens/profile_screen.dart';
 
+// SettingsScreen: The main screen for user settings
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final _authService = AuthService();
-  final _dbHelper = DBHelper();
-  late Future<List<UsageThreshold>> _thresholdsFuture;
+  final _authService = AuthService(); // Handles authentication-related actions
+  final _dbHelper = DBHelper(); // Handles database operations
+  late Future<List<UsageThreshold>>
+      _thresholdsFuture; // Future for fetching thresholds
 
-  bool _notificationsEnabled = true;
-
-  final List<String> _languages = ["English", "Amharic", "Oromo", "Tigrigna"];
-  String _selectedLanguage = "English";
+  bool _notificationsEnabled = true; // Toggle for notifications
+  final List<String> _languages = [
+    "English",
+    "Amharic",
+    "Oromo",
+    "Tigrigna"
+  ]; // Supported languages
+  String _selectedLanguage = "English"; // Currently selected language
 
   @override
   void initState() {
     super.initState();
-    _loadThresholds();
-    _loadPreferences();
+    _loadThresholds(); // Load usage thresholds from database
+    _loadPreferences(); // Load saved user preferences from SharedPreferences
   }
 
+  // Load saved preferences like notifications & language
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -38,6 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  // Save a preference key-value pair to SharedPreferences
   Future<void> _savePreference(String key, dynamic value) async {
     final prefs = await SharedPreferences.getInstance();
     if (value is bool) {
@@ -47,6 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // Load usage thresholds for the current user from the database
   void _loadThresholds() {
     final userId = _authService.currentUserId;
     if (userId != null) {
@@ -54,16 +63,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _thresholdsFuture = _dbHelper.getThresholdsByUserId(userId);
       });
     } else {
-      _thresholdsFuture = Future.value([]);
+      _thresholdsFuture = Future.value([]); // If no user, return empty list
     }
   }
 
+  // Get the current logged-in user's info
   Future<User?> _getCurrentUser() async {
     final userId = _authService.currentUserId;
     if (userId == null) return null;
     return _dbHelper.getUserById(userId);
   }
 
+  // Show a dialog to set or edit usage thresholds
   void _showThresholdDialog(String type, UsageThreshold? existing) {
     final controller = TextEditingController(
       text: existing?.maxUsage.toString() ?? '',
@@ -83,11 +94,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context), // Cancel button
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
+              // Validate input
               final value = double.tryParse(controller.text);
               if (value == null || value <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -98,9 +110,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
                 return;
               }
+
               final userId = _authService.currentUserId;
               if (userId == null) return;
 
+              // Create threshold object
               final threshold = UsageThreshold(
                 id: existing?.id,
                 userId: userId,
@@ -109,13 +123,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 unit: type == 'electricity' ? 'kWh' : 'L',
               );
 
+              // Save to database
               await _dbHelper.insertThreshold(threshold);
 
+              // Refresh the threshold list
               setState(() {
                 _thresholdsFuture = _dbHelper.getThresholdsByUserId(userId);
               });
 
-              Navigator.pop(context);
+              Navigator.pop(context); // Close dialog
             },
             child: const Text('Save'),
           ),
@@ -124,6 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // Navigate to ProfileScreen for editing profile
   void _showEditProfile() {
     final userId = _authService.currentUserId;
     if (userId != null) {
@@ -136,6 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // Show support & feedback dialog
   void _showSupportDialog() {
     showDialog(
       context: context,
@@ -153,6 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // Logout user and navigate to login screen
   Future<void> _logout() async {
     await _authService.logout();
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
@@ -165,7 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context), // Back button
         ),
         title: const Text(
           'Settings',
@@ -180,6 +199,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Display user info
             FutureBuilder<User?>(
               future: _getCurrentUser(),
               builder: (context, snapshot) {
@@ -205,6 +225,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             const SizedBox(height: 20),
+
+            // Section: Usage Thresholds
             const Text(
               "Usage Thresholds",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -229,7 +251,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             : const Text("Not set"),
                         trailing: const Icon(Icons.edit),
                         onTap: () {
-                          _showThresholdDialog(type, threshold);
+                          _showThresholdDialog(
+                              type, threshold); // Edit threshold
                         },
                       ),
                     );
@@ -238,19 +261,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             const SizedBox(height: 30),
+
+            // Section: General Settings
             const Text(
               "General Settings",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            // Notification toggle
             SwitchListTile(
               title: const Text('Enable Notifications'),
               value: _notificationsEnabled,
               onChanged: (val) {
                 setState(() => _notificationsEnabled = val);
-                _savePreference('notifications', val);
+                _savePreference('notifications', val); // Save preference
               },
             ),
             const SizedBox(height: 25),
+
+            // Language selection dropdown
             const Text(
               "Language",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -266,10 +294,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               isExpanded: true,
               onChanged: (value) {
                 setState(() => _selectedLanguage = value!);
-                _savePreference('language', value!);
+                _savePreference('language', value!); // Save language preference
               },
             ),
             const SizedBox(height: 30),
+
+            // Section: Account & Support
             const Text(
               "Account & Support",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -283,7 +313,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(
               leading: const Icon(Icons.lock_outlined),
               title: const Text('Change Password'),
-              onTap: _showEditProfile,
+              onTap:
+                  _showEditProfile, // You might want to implement a separate change password function
             ),
             ListTile(
               leading: const Icon(Icons.add_alert_outlined),
@@ -321,12 +352,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             const SizedBox(height: 30),
+
+            // Button: Reset App Data
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () async {
-                await _dbHelper.resetDatabase();
+                await _dbHelper.resetDatabase(); // Clear all database entries
                 SharedPreferences prefs = await SharedPreferences.getInstance();
-                prefs.clear();
+                prefs.clear(); // Clear stored preferences
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text("All app data cleared"),
@@ -337,6 +370,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: const Text("Reset App Data"),
             ),
             const SizedBox(height: 12),
+
+            // Button: Logout
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: _logout,
