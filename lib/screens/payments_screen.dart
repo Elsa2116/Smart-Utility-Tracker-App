@@ -8,7 +8,8 @@ import 'camera_screen.dart';
 
 /// Screen to display and manage user payments
 class PaymentsScreen extends StatefulWidget {
-  const PaymentsScreen({super.key});
+  final void Function(int index)? onTabChange;
+  const PaymentsScreen({super.key, this.onTabChange});
 
   @override
   State<PaymentsScreen> createState() => _PaymentsScreenState();

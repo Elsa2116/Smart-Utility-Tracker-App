@@ -5,7 +5,8 @@ import '../models/reading.dart'; // Reading model
 
 class AddReadingScreen extends StatefulWidget {
   // Screen to add new reading
-  const AddReadingScreen({super.key}); // Constructor
+  final void Function(int index)? onTabChange;
+  const AddReadingScreen({super.key, this.onTabChange}); // Constructor
 
   @override
   State<AddReadingScreen> createState() =>
@@ -47,13 +48,22 @@ class _AddReadingScreenState extends State<AddReadingScreen> {
       return; // Stop function
     }
 
+    // ✅ validate number (prevents crash if user types letters)
+    final usageValue = double.tryParse(_usageController.text);
+    if (usageValue == null || usageValue <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid number')),
+      );
+      return;
+    }
+
     final userId = _authService.currentUserId; // Get logged-in user's ID
     if (userId == null) return; // Stop if no user
 
     // Create Reading object from inputs
     final reading = Reading(
       userId: userId,
-      usage: double.parse(_usageController.text), // Convert to number
+      usage: usageValue, // Convert to number
       type: _selectedType, // Selected type
       date: _selectedDate, // Selected date
       notes: _notesController.text, // Notes
@@ -67,7 +77,18 @@ class _AddReadingScreenState extends State<AddReadingScreen> {
         const SnackBar(
             content: Text('Reading added successfully')), // Success message
       );
-      Navigator.of(context).pop(); // Go back to previous screen
+
+      // ✅ Clear fields after success
+      _usageController.clear();
+      _notesController.clear();
+
+      // ✅ Reset selections
+      setState(() {
+        _selectedType = 'electricity';
+        _selectedDate = DateTime.now();
+      });
+
+      widget.onTabChange?.call(0); // Go back to previous screen
     }
   }
 

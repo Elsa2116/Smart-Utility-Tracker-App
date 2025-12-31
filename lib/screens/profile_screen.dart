@@ -38,6 +38,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUser(); // Load user data when screen initializes
   }
 
+  // ✅ Decide whether the saved value is a network URL or a local file path
+  ImageProvider? _getProfileImageProvider(String? pathOrUrl) {
+    if (pathOrUrl == null || pathOrUrl.isEmpty) return null;
+
+    // If it's a real URL (http/https), show network image
+    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+      return NetworkImage(pathOrUrl);
+    }
+
+    // Otherwise treat it as a local file path (gallery image path)
+    final file = File(pathOrUrl);
+    if (file.existsSync()) {
+      return FileImage(file);
+    }
+
+    return null; // File not found → fallback to default icon
+  }
+
   // Fetch user data from the database
   Future<void> _loadUser() async {
     try {
@@ -48,6 +66,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _nameController.text = user.name;
           _profileImageUrl = user.profileImageUrl;
           _isLoading = false; // Stop loading once data is fetched
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
         });
       }
     } catch (e) {
@@ -66,21 +88,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (pickedFile != null) {
+      final newPath = pickedFile.path;
+
       setState(() {
-        _profileImage = File(pickedFile.path);
-        _profileImageUrl = pickedFile.path;
+        _profileImage = File(newPath);
+        _profileImageUrl = newPath; // Save local file path
       });
 
       // Update the user object in the database with the new image
       if (_user != null) {
-        await _dbHelper.updateUser(User(
+        final updated = User(
           id: _user!.id,
           name: _user!.name,
           email: _user!.email,
           password: _user!.password,
           createdAt: _user!.createdAt,
-          profileImageUrl: pickedFile.path,
-        ));
+          profileImageUrl: newPath, // ✅ store local path
+        );
+
+        await _dbHelper.updateUser(updated);
+
+        // ✅ Update local _user so other fields remain consistent
+        setState(() {
+          _user = updated;
+        });
+
+        // Optional confirmation
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile picture updated successfully")),
+        );
       }
     }
   }
@@ -97,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ? _user!.password
             : _passwordController.text,
         createdAt: _user!.createdAt,
-        profileImageUrl: _profileImageUrl,
+        profileImageUrl: _profileImageUrl, // ✅ can be local path or URL
       );
 
       await _dbHelper.updateUser(updatedUser); // Save changes to the database
@@ -110,6 +146,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Profile updated successfully")),
       );
+
+      // ✅ Send result back so SettingsScreen can refresh if needed
+      Navigator.pop(context, true);
     }
   }
 
@@ -125,12 +164,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Pick correct provider (local file OR network)
+    final imageProvider = _profileImage != null
+        ? FileImage(_profileImage!)
+        : _getProfileImageProvider(_profileImageUrl);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: _isLoading
           ? const Center(
-              child:
-                  CircularProgressIndicator()) // Show loader while fetching data
+              child: CircularProgressIndicator(),
+            ) // Show loader while fetching data
           : Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -140,12 +184,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: _pickImage,
                     child: CircleAvatar(
                       radius: 50,
-                      backgroundImage: _profileImage != null
-                          ? FileImage(_profileImage!) // Show picked image
-                          : (_profileImageUrl != null
-                              ? NetworkImage(_profileImageUrl!) as ImageProvider
-                              : null),
-                      child: _profileImage == null && _profileImageUrl == null
+                      backgroundImage: imageProvider,
+                      child: imageProvider == null
                           ? const Icon(Icons.person, size: 50) // Default icon
                           : null,
                     ),

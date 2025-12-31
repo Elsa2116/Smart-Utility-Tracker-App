@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:smart_utility_tracker/screens/splash_screen.dart';
 import 'package:smart_utility_tracker/screens/login_screen.dart';
-import 'package:smart_utility_tracker/screens/home_screen.dart';
 import 'package:smart_utility_tracker/screens/profile_screen.dart';
-import 'package:smart_utility_tracker/screens/history_analytics_screen.dart';
-import 'package:smart_utility_tracker/screens/payments_screen.dart';
 import 'package:smart_utility_tracker/screens/alerts_screen.dart';
-import 'package:smart_utility_tracker/screens/add_reading_screen.dart';
-import 'package:smart_utility_tracker/screens/reminders_screen.dart';
-import 'package:smart_utility_tracker/screens/settings_screen.dart';
+
+import 'package:smart_utility_tracker/screens/app_shell.dart'; // ✅ ADD THIS
 
 void main() {
   runApp(const MyApp());
@@ -36,14 +32,18 @@ class MyApp extends StatelessWidget {
       routes: {
         '/splash': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
-        '/home': (context) => const HomeScreen(),
+
+        // ✅ ALL BOTTOM NAVIGATION TABS MUST POINT TO AppShell
+        '/home': (context) => const AppShell(initialIndex: 0),
+        '/add-reading': (context) => const AppShell(initialIndex: 1),
+        '/insights': (context) => const AppShell(initialIndex: 2),
+        '/payments': (context) => const AppShell(initialIndex: 3),
+        '/reminders': (context) => const AppShell(initialIndex: 4),
+        '/settings': (context) => const AppShell(initialIndex: 5),
+
+        // ✅ These are NOT tabs, so they can stay as normal pages
         '/profile': (context) => const ProfileScreen(userId: 1),
-        '/insights': (context) => const HistoryAnalyticsScreen(),
-        '/payments': (context) => const PaymentsScreen(),
         '/alerts': (context) => const AlertsScreen(),
-        '/reminders': (context) => const RemindersScreen(), // added
-        '/settings': (context) => const SettingsScreen(), // added
-        '/add-reading': (context) => const AddReadingScreen(),
       },
     );
   }

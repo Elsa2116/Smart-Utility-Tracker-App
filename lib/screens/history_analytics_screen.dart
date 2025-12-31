@@ -1,5 +1,3 @@
-// history_analytics_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart'; // For drawing charts
 import '../services/auth_service.dart'; // Custom auth service to get current user
@@ -43,59 +41,38 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
     super.dispose();
   }
 
-  // Load reading data from database or demo data
+  //  Load reading data from REAL database (no demo data)
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     final userId = _authService.currentUserId;
-    if (userId != null) {
-      // Demo data for now; replace with actual DB call
-      setState(() {
-        _allReadings = [
-          Reading(
-              userId: 1,
-              usage: 245,
-              type: 'electricity',
-              date: DateTime.now().subtract(const Duration(days: 1))),
-          Reading(
-              userId: 1,
-              usage: 220,
-              type: 'electricity',
-              date: DateTime.now().subtract(const Duration(days: 30))),
-          Reading(
-              userId: 1,
-              usage: 210,
-              type: 'electricity',
-              date: DateTime.now().subtract(const Duration(days: 60))),
-          Reading(
-              userId: 1,
-              usage: 45,
-              type: 'water',
-              date: DateTime.now().subtract(const Duration(days: 2))),
-          Reading(
-              userId: 1,
-              usage: 40,
-              type: 'water',
-              date: DateTime.now().subtract(const Duration(days: 32))),
-          Reading(
-              userId: 1,
-              usage: 38,
-              type: 'water',
-              date: DateTime.now().subtract(const Duration(days: 62))),
-        ];
-        _filteredReadings = _allReadings; // Initially show all readings
-        _isLoading = false;
-        _calculateAnalytics(); // Compute analytics data
-      });
-    } else {
+    if (userId == null) {
       setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      //  Get latest readings from DB (already ordered DESC in DBHelper)
+      final readings = await _dbHelper.getReadingsByUserId(userId);
+
+      setState(() {
+        _allReadings = readings;
+        _isLoading = false;
+      });
+
+      //  Apply current filter after loading
+      _filterReadings();
+    } catch (e) {
+      // If something fails, stop loading safely
+      setState(() => _isLoading = false);
+      debugPrint('Error loading readings: $e');
     }
   }
 
   // Filter readings based on selected type
   void _filterReadings() {
     if (_selectedType == 'all') {
-      setState(() => _filteredReadings = _allReadings);
+      setState(() => _filteredReadings = List<Reading>.from(_allReadings));
     } else {
       setState(() {
         _filteredReadings = _allReadings
@@ -106,9 +83,45 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
     _calculateAnalytics(); // Recalculate analytics after filtering
   }
 
+  //  Delete all readings (or by type) from DB + refresh UI
+  Future<void> _clearReadingsFromDb() async {
+    final userId = _authService.currentUserId;
+    if (userId == null) return;
+
+    final db = await _dbHelper.database;
+
+    // If 'all', delete all readings for user
+    if (_selectedType == 'all') {
+      await db.delete('readings', where: 'userId = ?', whereArgs: [userId]);
+    } else {
+      // Otherwise delete only the selected type
+      await db.delete('readings',
+          where: 'userId = ? AND type = ?', whereArgs: [userId, _selectedType]);
+    }
+
+    // Reload from DB so UI + analytics update correctly
+    await _loadData();
+  }
+
+  // Delete single reading from DB + refresh UI
+  Future<void> _deleteSingleReading(Reading reading) async {
+    if (reading.id == null) return;
+
+    await _dbHelper.deleteReading(reading.id!);
+
+    // Remove locally for instant UI, then recompute analytics
+    setState(() {
+      _allReadings.removeWhere((r) => r.id == reading.id);
+    });
+    _filterReadings();
+  }
+
   // Calculate analytics data: total, average, max, min, trends, predictions
   void _calculateAnalytics() {
-    if (_allReadings.isEmpty) return;
+    if (_allReadings.isEmpty) {
+      setState(() => _analyticsData = {});
+      return;
+    }
 
     // Separate electricity and water readings
     final electricityReadings =
@@ -195,7 +208,10 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
   double _predictNextUsage(List<Reading> readings) {
     if (readings.length < 2) return 0;
 
-    final sortedReadings = List<Reading>.from(readings.reversed);
+    // Sort by date ascending (oldest -> newest)
+    final sortedReadings = List<Reading>.from(readings)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
     double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
     final n = sortedReadings.length;
 
@@ -206,7 +222,10 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
       sumX2 += i * i;
     }
 
-    final slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    final denom = (n * sumX2 - sumX * sumX);
+    if (denom == 0) return 0;
+
+    final slope = (n * sumXY - sumX * sumY) / denom;
     final intercept = (sumY - slope * sumX) / n;
     final predictedUsage = intercept + slope * n;
 
@@ -226,6 +245,7 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
     final secondAvg = secondHalf.fold<double>(0, (sum, r) => sum + r.usage) /
         secondHalf.length;
 
+    if (firstAvg == 0) return 0;
     return ((secondAvg - firstAvg) / firstAvg) * 100; // Trend as percentage
   }
 
@@ -260,6 +280,32 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
       readings.length,
       (index) => FlSpot(index.toDouble(), readings[index].usage),
     );
+  }
+
+  // ✅ REPLACED: Better interval helper for Y-axis labels (prevents 100/300 jumps)
+  double _getYAxisInterval(List<FlSpot> spots) {
+    if (spots.isEmpty) return 1;
+
+    final ys = spots.map((e) => e.y).toList()..sort();
+    final minY = ys.first;
+    final maxY = ys.last;
+
+    final range = (maxY - minY).abs();
+    if (range == 0) return 1;
+
+    // We want about 6–8 labels
+    final raw = range / 7;
+
+    // Choose "nice" intervals
+    if (raw <= 1) return 1;
+    if (raw <= 2) return 2;
+    if (raw <= 5) return 5;
+    if (raw <= 10) return 10;
+    if (raw <= 20) return 20;
+    if (raw <= 50) return 50;
+    if (raw <= 100) return 100;
+
+    return 200;
   }
 
   // Build the History tab
@@ -339,17 +385,13 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
                             child: const Text('Cancel',
                                 style: TextStyle(color: Colors.blue))),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.pop(context);
-                            setState(() {
-                              if (_selectedType == 'all') {
-                                _allReadings.clear();
-                              } else {
-                                _allReadings.removeWhere(
-                                    (r) => r.type == _selectedType);
-                              }
-                              _filterReadings();
-                            });
+
+                            //  Clear from DB (not just UI)
+                            await _clearReadingsFromDb();
+
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                   content:
@@ -412,11 +454,11 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
                             color: Colors.white, size: 30),
                       ),
                       direction: DismissDirection.endToStart,
-                      onDismissed: (direction) {
-                        setState(() {
-                          _allReadings.remove(reading);
-                          _filterReadings();
-                        });
+                      onDismissed: (direction) async {
+                        //  Delete from DB
+                        await _deleteSingleReading(reading);
+
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                               content: Text('Deleted ${reading.type} reading'),
@@ -509,7 +551,8 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/add-reading');
+                Navigator.pushNamed(context, '/add-reading')
+                    .then((_) => _loadData());
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               child: const Text('Add First Reading'),
@@ -519,14 +562,277 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
       );
     }
 
+    final data = _analyticsData[_chartType] as Map<String, dynamic>? ?? {};
+    final avg = (data['average'] ?? 0).toDouble();
+    final total = (data['total'] ?? 0).toDouble();
+    final max = (data['max'] ?? 0).toDouble();
+    final min = (data['min'] ?? 0).toDouble();
+    final prediction = (data['prediction'] ?? 0).toDouble();
+    final trend = (data['trend'] ?? 0).toDouble();
+    final unit = _getUnit(_chartType);
+
+    final spots = _getChartData(_chartType);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Chart type selector (electricity/water)
-          // ... [rest of the analytics widgets, summary cards, charts, detail cards, trends]
-          // Already have clear comments for chart/trend calculations above
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF374151),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF4B5563)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.tune, color: Colors.white70, size: 20),
+                const SizedBox(width: 10),
+                const Text('Chart:', style: TextStyle(color: Colors.white70)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4B5563),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButton<String>(
+                      value: _chartType,
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF4B5563),
+                      style: const TextStyle(color: Colors.white),
+                      underline: Container(),
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: Colors.white70),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'electricity',
+                          child: Text('ELECTRICITY'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'water',
+                          child: Text('WATER'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() => _chartType = value);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Summary cards row
+          Row(
+            children: [
+              Expanded(
+                child: _buildAnalyticsCard(
+                  title: 'Average',
+                  value: avg.toStringAsFixed(1),
+                  unit: unit,
+                  icon: Icons.bar_chart,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAnalyticsCard(
+                  title: 'Total',
+                  value: total.toStringAsFixed(1),
+                  unit: unit,
+                  icon: Icons.summarize,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildAnalyticsCard(
+                  title: 'Max',
+                  value: max.toStringAsFixed(1),
+                  unit: unit,
+                  icon: Icons.trending_up,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAnalyticsCard(
+                  title: 'Min',
+                  value: min.toStringAsFixed(1),
+                  unit: unit,
+                  icon: Icons.trending_down,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Trend + prediction
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF374151),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF4B5563)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Insights',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.show_chart, color: _getTrendColor(trend)),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_getTrendText(trend)} (${trend.toStringAsFixed(1)}%)',
+                      style: TextStyle(color: _getTrendColor(trend)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.auto_graph, color: Colors.white70),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Next prediction: ${prediction.toStringAsFixed(1)} $unit',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Line chart with Y-axis numbers
+          Container(
+            height: 260,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF374151),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF4B5563)),
+            ),
+            child: spots.isEmpty
+                ? const Center(
+                    child: Text('No chart data',
+                        style: TextStyle(color: Colors.white70)),
+                  )
+                : LineChart(
+                    LineChartData(
+                      gridData: const FlGridData(show: true),
+
+                      //  SHOW LEFT (Y) + BOTTOM (X) numbers
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 42,
+                            interval: _getYAxisInterval(spots),
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                value.toStringAsFixed(0),
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 10),
+                              );
+                            },
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 22,
+                            interval: 1,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                (value.toInt() + 1).toString(),
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 10),
+                              );
+                            },
+                          ),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: spots,
+                          isCurved: true,
+                          barWidth: 3,
+                          dotData: const FlDotData(show: true),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  // Small analytics card widget
+  Widget _buildAnalyticsCard({
+    required String title,
+    required String value,
+    required String unit,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF374151),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF4B5563)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white70),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 6),
+                Text('$value $unit',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16)),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -569,6 +875,7 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          // After add-reading returns, reload DB
           Navigator.pushNamed(context, '/add-reading').then((_) => _loadData());
         },
         backgroundColor: Colors.blue,

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 // Main Reminders Screen as a StatefulWidget to handle dynamic data
 class RemindersScreen extends StatefulWidget {
-  const RemindersScreen({super.key});
+  final void Function(int index)? onTabChange;
+  const RemindersScreen({super.key, this.onTabChange});
 
   @override
   State<RemindersScreen> createState() => _RemindersScreenState();

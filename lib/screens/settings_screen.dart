@@ -1,3 +1,4 @@
+import 'dart:io'; // ✅ Needed for FileImage when user picks from gallery
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
@@ -8,7 +9,8 @@ import '../screens/profile_screen.dart';
 
 // SettingsScreen: The main screen for user settings
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final void Function(int index)? onTabChange;
+  const SettingsScreen({super.key, this.onTabChange});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -72,6 +74,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final userId = _authService.currentUserId;
     if (userId == null) return null;
     return _dbHelper.getUserById(userId);
+  }
+
+  // ✅ Decide whether image is network URL or local file path
+  ImageProvider? _getProfileImageProvider(String? pathOrUrl) {
+    if (pathOrUrl == null || pathOrUrl.isEmpty) return null;
+
+    // If it starts with http/https → treat as network image
+    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+      return NetworkImage(pathOrUrl);
+    }
+
+    // Otherwise treat as local file image (gallery path)
+    final file = File(pathOrUrl);
+    if (file.existsSync()) {
+      return FileImage(file);
+    }
+
+    return null; // If file missing, fallback to icon
   }
 
   // Show a dialog to set or edit usage thresholds
@@ -141,15 +161,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // Navigate to ProfileScreen for editing profile
-  void _showEditProfile() {
+  Future<void> _showEditProfile() async {
     final userId = _authService.currentUserId;
     if (userId != null) {
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ProfileScreen(userId: userId),
         ),
       );
+
+      // ✅ Refresh screen after returning so updated image shows immediately
+      if (mounted) setState(() {});
     }
   }
 
@@ -184,7 +207,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context), // Back button
+          onPressed: () => widget.onTabChange?.call(0), // Back button
         ),
         title: const Text(
           'Settings',
@@ -205,13 +228,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const SizedBox();
                 final user = snapshot.data!;
+
+                final profileImageProvider =
+                    _getProfileImageProvider(user.profileImageUrl);
+
                 return ListTile(
                   leading: CircleAvatar(
                     radius: 24,
-                    backgroundImage: user.profileImageUrl != null
-                        ? NetworkImage(user.profileImageUrl!)
-                        : null,
-                    child: user.profileImageUrl == null
+                    backgroundImage: profileImageProvider,
+                    child: profileImageProvider == null
                         ? const Icon(Icons.person)
                         : null,
                   ),
@@ -313,8 +338,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(
               leading: const Icon(Icons.lock_outlined),
               title: const Text('Change Password'),
-              onTap:
-                  _showEditProfile, // You might want to implement a separate change password function
+              onTap: _showEditProfile,
             ),
             ListTile(
               leading: const Icon(Icons.add_alert_outlined),
