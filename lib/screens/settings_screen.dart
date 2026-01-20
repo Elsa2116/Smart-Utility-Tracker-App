@@ -76,7 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return _dbHelper.getUserById(userId);
   }
 
-  // ✅ Decide whether image is network URL or local file path
+  //  Decide whether image is network URL or local file path
   ImageProvider? _getProfileImageProvider(String? pathOrUrl) {
     if (pathOrUrl == null || pathOrUrl.isEmpty) return null;
 
@@ -171,7 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
 
-      // ✅ Refresh screen after returning so updated image shows immediately
+      //  Refresh screen after returning so updated image shows immediately
       if (mounted) setState(() {});
     }
   }
