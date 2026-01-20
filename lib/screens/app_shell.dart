@@ -11,9 +11,9 @@ import 'add_reading_screen.dart';
 // It holds the BottomNavigationBar and switches screens
 // without rebuilding them or removing the bottom bar
 class AppShell extends StatefulWidget {
-  final int initialIndex; // ✅ initial tab index when AppShell opens
+  final int initialIndex; //  initial tab index when AppShell opens
 
-  const AppShell({super.key, this.initialIndex = 0}); // ✅ default is Home (0)
+  const AppShell({super.key, this.initialIndex = 0}); //  default is Home (0)
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -23,14 +23,14 @@ class _AppShellState extends State<AppShell> {
   // Keeps track of which tab is currently selected
   int _selectedIndex = 0;
 
-  // ✅ NEW: Notifier so pages can know when tab changes (IndexedStack keeps them alive)
+  // Notifier so pages can know when tab changes (IndexedStack keeps them alive)
   final ValueNotifier<int> _tabNotifier = ValueNotifier<int>(0);
 
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.initialIndex; // ✅ start from the passed tab
-    _tabNotifier.value = _selectedIndex; // ✅ sync notifier
+    _selectedIndex = widget.initialIndex; // start from the passed tab
+    _tabNotifier.value = _selectedIndex; //  sync notifier
   }
 
   // Called whenever a bottom navigation item is tapped
@@ -38,7 +38,7 @@ class _AppShellState extends State<AppShell> {
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
 
-    // ✅ notify screens that tab changed
+    //  notify screens that tab changed
     _tabNotifier.value = index;
   }
 
@@ -58,7 +58,7 @@ class _AppShellState extends State<AppShell> {
     // IMPORTANT: pass onTabChange so "Add Reading" can switch tabs after saving
     AddReadingScreen(onTabChange: _onItemTapped), // index 1 → Add Reading
 
-    // ✅ HistoryAnalyticsScreen does NOT accept onTabChange (your file has only {super.key})
+    //  HistoryAnalyticsScreen does NOT accept onTabChange (your file has only {super.key})
     const HistoryAnalyticsScreen(), // index 2 → Insights
 
     const PaymentsScreen(), // index 3 → Payments
