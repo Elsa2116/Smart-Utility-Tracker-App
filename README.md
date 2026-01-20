@@ -19,7 +19,7 @@
 
 - **Flutter & Dart** – mobile & web frontend  
 - **sqflite (SQLite)** – local database  
-- **Provider / Riverpod / setState** – state management (depending on implementation)  
+- **Provider / Riverpod / setState** – state management
 - **VS Code / Android Studio** – development environment  
 - **Git / GitHub** – version control
 
