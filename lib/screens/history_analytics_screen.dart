@@ -282,7 +282,7 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen>
     );
   }
 
-  // ✅ REPLACED: Better interval helper for Y-axis labels (prevents 100/300 jumps)
+  //  Better interval helper for Y-axis labels (prevents 100/300 jumps)
   double _getYAxisInterval(List<FlSpot> spots) {
     if (spots.isEmpty) return 1;
 
