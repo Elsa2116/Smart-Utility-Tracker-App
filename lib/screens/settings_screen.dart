@@ -1,4 +1,4 @@
-import 'dart:io'; // ✅ Needed for FileImage when user picks from gallery
+import 'dart:io'; // FileImage when user picks from gallery
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
