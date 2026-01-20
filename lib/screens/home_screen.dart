@@ -8,7 +8,7 @@ class HomeScreen extends StatefulWidget {
 
   final void Function(int index)? onTabChange;
 
-  // ✅ NEW: lets Home refresh when user returns to Home tab in IndexedStack
+  // Home refresh when user returns to Home tab in IndexedStack
   final ValueNotifier<int>? tabIndexNotifier;
 
   const HomeScreen({
@@ -32,25 +32,25 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showAllReadings =
       false; // Control whether to show all readings or only the first few
 
-  bool _isLoading = true; // ✅ NEW: loading state for DB fetch
+  bool _isLoading = true; // loading state for DB fetch
 
   @override
   void initState() {
     super.initState(); // Call parent initState
-    _loadData(); // ✅ Load recent readings from DB when widget initializes
+    _loadData(); //  Load recent readings from DB when widget initializes
 
-    // ✅ NEW: listen to tab changes from AppShell and reload when returning to Home (index 0)
+    //  listen to tab changes from AppShell and reload when returning to Home (index 0)
     widget.tabIndexNotifier?.addListener(_handleTabChange);
   }
 
   @override
   void dispose() {
-    // ✅ remove listener
+    //  remove listener
     widget.tabIndexNotifier?.removeListener(_handleTabChange);
     super.dispose();
   }
 
-  // ✅ called when user switches tabs
+  // called when user switches tabs
   void _handleTabChange() {
     if (widget.tabIndexNotifier?.value == 0) {
       _loadData(); // reload DB readings when Home is shown again
@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    // ✅ Load recent readings FROM DATABASE (not dummy data)
+    //  Load recent readings FROM DATABASE (not dummy data)
     setState(() {
       _isLoading = true;
     });
@@ -72,14 +72,14 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // ✅ fetch readings from sqlite
+    // fetch readings from sqlite
     final readings = await _dbHelper.getReadingsByUserId(userId);
 
     setState(() {
-      // ✅ keep all readings in memory (used for "show all")
+      //  keep all readings in memory (used for "show all")
       _recentReadings = readings;
 
-      // ✅ stop loader
+      //  stop loader
       _isLoading = false;
     });
   }
@@ -140,11 +140,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: RefreshIndicator(
-          // ✅ Pull to refresh
+          //  Pull to refresh
           onRefresh: _loadData,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            // ✅ AlwaysScrollable to make RefreshIndicator work
+            //  AlwaysScrollable to make RefreshIndicator work
             padding: const EdgeInsets.all(16),
             child: Column(
               // Vertical layout
@@ -168,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 32), // Spacer
 
-                // ✅ show loading spinner above stats
+                //  show loading spinner above stats
                 if (_isLoading)
                   const Center(
                     child: Padding(
