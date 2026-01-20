@@ -38,7 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUser(); // Load user data when screen initializes
   }
 
-  // ✅ Decide whether the saved value is a network URL or a local file path
+  //  Decide whether the saved value is a network URL or a local file path
   ImageProvider? _getProfileImageProvider(String? pathOrUrl) {
     if (pathOrUrl == null || pathOrUrl.isEmpty) return null;
 
@@ -103,12 +103,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           email: _user!.email,
           password: _user!.password,
           createdAt: _user!.createdAt,
-          profileImageUrl: newPath, // ✅ store local path
+          profileImageUrl: newPath, // store local path
         );
 
         await _dbHelper.updateUser(updated);
 
-        // ✅ Update local _user so other fields remain consistent
+        //  Update local _user so other fields remain consistent
         setState(() {
           _user = updated;
         });
@@ -133,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ? _user!.password
             : _passwordController.text,
         createdAt: _user!.createdAt,
-        profileImageUrl: _profileImageUrl, // ✅ can be local path or URL
+        profileImageUrl: _profileImageUrl, //  can be local path or URL
       );
 
       await _dbHelper.updateUser(updatedUser); // Save changes to the database
@@ -147,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SnackBar(content: Text("Profile updated successfully")),
       );
 
-      // ✅ Send result back so SettingsScreen can refresh if needed
+      //  Send result back so SettingsScreen can refresh if needed
       Navigator.pop(context, true);
     }
   }
@@ -164,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Pick correct provider (local file OR network)
+    //  Pick correct provider (local file OR network)
     final imageProvider = _profileImage != null
         ? FileImage(_profileImage!)
         : _getProfileImageProvider(_profileImageUrl);
