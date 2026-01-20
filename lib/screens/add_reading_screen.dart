@@ -48,7 +48,7 @@ class _AddReadingScreenState extends State<AddReadingScreen> {
       return; // Stop function
     }
 
-    // ✅ validate number (prevents crash if user types letters)
+    //  validate number (prevents crash if user types letters)
     final usageValue = double.tryParse(_usageController.text);
     if (usageValue == null || usageValue <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,11 +78,11 @@ class _AddReadingScreenState extends State<AddReadingScreen> {
             content: Text('Reading added successfully')), // Success message
       );
 
-      // ✅ Clear fields after success
+      //  Clear fields after success
       _usageController.clear();
       _notesController.clear();
 
-      // ✅ Reset selections
+      //  Reset selections
       setState(() {
         _selectedType = 'electricity';
         _selectedDate = DateTime.now();
